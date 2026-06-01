@@ -1,0 +1,1640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Idle Garden</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0A0704}
+body{
+  display:flex;align-items:center;justify-content:center;min-height:100vh;
+  font-family:Georgia,'Times New Roman',serif;color:#C8B08A;
+}
+#app{
+  width:1140px;max-width:100%;height:100vh;max-height:100vh;
+  border:3px solid #6B4526;border-radius:14px;overflow:hidden;
+  box-shadow:0 0 80px rgba(0,0,0,.9),0 0 160px rgba(90,50,10,.12);
+  display:flex;flex-direction:column;
+}
+
+/* ─── HEADER ─── */
+#hdr{
+  background:linear-gradient(135deg,#1A0D05,#241407);
+  padding:11px 22px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:2px solid #5C3520;flex-shrink:0;
+}
+#coins-wrap{display:flex;align-items:center;gap:8px;font-size:22px;font-weight:bold;color:#F9A825}
+#game-title{font-size:15px;letter-spacing:5px;text-transform:uppercase;color:#B09070;font-weight:normal}
+#weather-ind{min-width:130px;text-align:right;font-size:10px}
+.w-badge{display:inline-block;padding:4px 9px;border-radius:7px;font-size:11px;font-weight:bold;line-height:1.3;border:1px solid}
+.w-next{color:#3A2A18;font-size:10px;letter-spacing:.3px}
+
+/* ─── NOTIFICATIONS ─── */
+#notif-bar{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:30;display:flex;flex-direction:column;gap:5px;align-items:center;pointer-events:none;min-width:320px;max-width:600px}
+.notif{padding:7px 18px;border-radius:7px;font-size:12px;font-weight:bold;letter-spacing:.3px;font-family:'Courier New',monospace;border:1px solid;white-space:nowrap;animation:notifAnim 4s forwards;background:rgba(0,0,0,.88)}
+@keyframes notifAnim{0%{opacity:0;transform:translateY(-10px)}8%{opacity:1;transform:translateY(0)}80%{opacity:1}100%{opacity:0;transform:translateY(-6px)}}
+
+/* ─── ADMIN PANEL ─── */
+#adm-panel{
+  display:none;position:fixed;bottom:18px;right:18px;width:265px;
+  z-index:200;background:#060C06;border:1.5px solid #00FF41;border-radius:9px;
+  font-family:'Courier New',monospace;
+  box-shadow:0 0 40px #00FF4122,0 4px 20px rgba(0,0,0,.6);
+  max-height:80vh;overflow:hidden;display:none;flex-direction:column;
+}
+#adm-titlebar{background:#00FF4112;padding:7px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #00FF4125;cursor:default}
+#adm-titlebar>span{color:#00FF41;font-size:10px;letter-spacing:3px;text-shadow:0 0 8px #00FF4166}
+#adm-body{padding:11px 12px;overflow-y:auto;max-height:calc(80vh - 36px);scrollbar-width:thin;scrollbar-color:#00FF4130 transparent}
+.adm-section{margin-bottom:11px}
+.adm-label{font-size:8px;letter-spacing:2.5px;color:#007A20;margin-bottom:5px;text-transform:uppercase}
+.adm-btns{display:flex;flex-wrap:wrap;gap:4px}
+.adm-btn{background:#050E05;border:1px solid #00FF4130;border-radius:4px;color:#00FF41;font-size:9px;font-family:'Courier New',monospace;padding:4px 8px;cursor:pointer;letter-spacing:.4px;transition:all .12s}
+.adm-btn:hover{background:#00FF4112;border-color:#00FF41;box-shadow:0 0 6px #00FF4133}
+
+/* ─── MIDDLE ROW ─── */
+#mid{display:flex;flex:1;min-height:0;align-items:stretch;}
+
+/* ─── GARDEN SIDE ─── */
+#garden-side{flex:1;min-width:0;display:flex;flex-direction:column;}
+
+/* ─── PLANTING BAR ─── */
+#pbar{
+  background:#0C1A07;border-bottom:1px solid #1C3810;
+  padding:6px 18px;display:none;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+#pbar.show{display:flex}
+#pbar-txt{font-size:12px;color:#7CB342}
+.sm-btn{
+  background:#161F10;color:#6D8060;border:1px solid #253018;border-radius:5px;
+  padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit;margin-left:6px;transition:all .15s;
+}
+.sm-btn:hover{background:#1E2E16;color:#A5D6A7}
+
+/* ─── GARDEN WRAP ─── */
+#gwrap{position:relative;overflow:hidden;flex:1;min-height:0;}
+#gsvg{width:100%;height:100%;display:block;cursor:default;}
+#gsvg.crosshair{cursor:crosshair}
+
+/* ─── TOOLTIP ─── */
+#tt{
+  position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+  background:rgba(12,7,2,.97);border:1.5px solid #5C3520;
+  border-radius:11px;padding:11px 14px;
+  display:none;align-items:center;gap:12px;
+  z-index:20;box-shadow:0 6px 28px rgba(0,0,0,.8);min-width:280px;white-space:nowrap;
+}
+#tt.show{display:flex}
+#fruit-tt{
+  position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+  background:rgba(12,7,2,.97);border:1.5px solid #7A5230;
+  border-radius:11px;padding:10px 14px;
+  display:none;align-items:center;gap:12px;
+  z-index:21;box-shadow:0 6px 28px rgba(0,0,0,.8);min-width:240px;white-space:nowrap;
+}
+#fruit-tt.show{display:flex}
+#ftt-name{font-size:13px;font-weight:bold;color:#D7C4A0}
+#ftt-size{font-size:11px;color:#90A4AE;margin-top:2px}
+#ftt-muts{font-size:11px;color:#CE93D8;margin-top:2px;min-height:14px}
+#ftt-val{font-size:12px;color:#F9A825;margin-top:3px;font-weight:bold}
+#ftt-acts{display:flex;flex-direction:column;gap:5px;min-width:94px}
+#tt-name{font-size:15px;font-weight:bold;color:#D7C4A0}
+#tt-stage{font-size:11px;color:#A5D6A7;margin-top:3px}
+#tt-detail{font-size:11px;color:#CE93D8;margin-top:2px}
+#tt-val{font-size:11px;color:#F9A825;margin-top:2px;min-height:15px}
+#tt-acts{display:flex;flex-direction:column;gap:5px;min-width:100px}
+.tbt{
+  border:none;border-radius:6px;padding:7px 10px;font-size:11px;font-weight:bold;
+  cursor:pointer;font-family:inherit;width:100%;text-align:center;transition:all .15s;
+}
+.tbt.do-harv{background:linear-gradient(135deg,#C84B00,#E87000);color:#fff}
+.tbt.do-harv:hover{background:linear-gradient(135deg,#E65C00,#FF8A00)}
+.tbt.do-rem{background:#141E14;color:#6D8060;border:1px solid #253018}
+.tbt.do-rem:hover{background:#1C2E1C;color:#A5D6A7}
+.tbt.do-cls{background:transparent;color:#3A3A3A;border:1px solid #282828;font-size:10px}
+.tbt.do-cls:hover{color:#666;border-color:#444}
+
+/* ─── SHOP PANEL (right) ─── */
+#shop-panel{
+  width:244px;flex-shrink:0;
+  background:#0A0602;
+  border-left:2px solid #5C3520;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+#shop-hdr{
+  background:linear-gradient(180deg,#1A0D05,#130A03);
+  padding:11px 14px 9px;
+  border-bottom:1px solid #3D2B1F;
+  flex-shrink:0;
+}
+#shop-hdr-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+#shop-label{font-size:13px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;color:#9E8060}
+#restock-wrap{text-align:right}
+#restock-label{font-size:9px;color:#5A4A30;letter-spacing:.5px;text-transform:uppercase}
+#restock-timer{font-size:13px;color:#7CB342;font-weight:bold;letter-spacing:1px;display:block;line-height:1.1;margin-top:1px}
+#restock-bar-bg{height:4px;background:#1C1208;border-radius:2px;overflow:hidden}
+#restock-bar-fill{height:100%;background:linear-gradient(90deg,#2E6B14,#5CA020);border-radius:2px;width:100%;transition:width .9s linear}
+
+/* scrollable area */
+#shop-scroll{
+  flex:1;overflow-y:auto;padding:10px 10px 14px;
+  display:flex;flex-direction:column;gap:8px;
+  scrollbar-width:thin;scrollbar-color:#3D2B1F #0A0602;
+}
+#shop-scroll::-webkit-scrollbar{width:5px}
+#shop-scroll::-webkit-scrollbar-track{background:#0A0602}
+#shop-scroll::-webkit-scrollbar-thumb{background:#3D2B1F;border-radius:4px}
+
+/* shop cards */
+.scard{
+  background:#140C04;border:1.5px solid #2E1E0E;border-radius:10px;
+  padding:9px 10px;cursor:pointer;display:flex;align-items:center;gap:9px;
+  transition:all .18s;position:relative;
+}
+.scard:hover:not(.broke){border-color:#6B4020;background:#1C1208;transform:translateX(-2px);box-shadow:3px 0 14px rgba(0,0,0,.5)}
+.scard.sel{border-color:#7CB342;background:#091506;}
+.scard.broke{opacity:.38;cursor:not-allowed}
+.sc-info{flex:1;min-width:0}
+.sc-name{color:#C8B08A;font-size:12px;font-weight:bold;line-height:1.2}
+.sc-row{display:flex;align-items:center;gap:5px;margin-top:3px;flex-wrap:wrap}
+.sc-cost{color:#F9A825;font-size:10px;font-weight:bold}
+.sc-sell{color:#81C784;font-size:9px;opacity:.85}
+.sc-meta{font-size:9px;color:#4A6040;margin-top:2px}
+.sc-type{font-size:8px;padding:2px 5px;border-radius:3px;font-weight:bold;display:inline-block;margin-top:3px}
+.sc-type.multi{background:#0E2A08;color:#7CB342;border:1px solid #1E4A10}
+.sc-type.single{background:#2A1208;color:#E07030;border:1px solid #4A2010}
+.sc-stock{
+  display:inline-block;font-size:9px;padding:2px 6px;border-radius:3px;margin-top:3px;
+  font-weight:bold;letter-spacing:.3px;
+}
+.sc-stock.ok{background:#0A200A;color:#5CA020;border:1px solid #1A3A10}
+.sc-stock.low{background:#1E1A04;color:#D4A020;border:1px solid #3A3010}
+.sc-stock.out{background:#1E0808;color:#A03030;border:1px solid #3A1010}
+
+/* ─── FOOTER ─── */
+#ftr{
+  background:linear-gradient(135deg,#1A0D05,#241407);
+  border-top:2px solid #5C3520;padding:9px 22px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  flex-shrink:0;
+}
+#ftr-stats{font-size:11px;color:#5C4A30}
+#ftr-hint{font-size:10px;color:#3A2A18;font-style:italic}
+#sell-all{
+  background:linear-gradient(135deg,#B84800,#D96500);color:#fff;
+  border:none;border-radius:7px;padding:7px 14px;font-weight:bold;
+  font-size:12px;cursor:pointer;font-family:inherit;display:none;
+  box-shadow:0 2px 10px rgba(180,70,0,.35);transition:all .15s;
+}
+#sell-all.show{display:block}
+#sell-all:hover{background:linear-gradient(135deg,#D95500,#F07800)}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- HEADER -->
+<div id="hdr">
+  <div id="coins-wrap">
+    <svg id="coin-logo" width="22" height="22" viewBox="0 0 22 22" style="cursor:pointer;flex-shrink:0" title="…">
+      <circle cx="11" cy="11" r="10" fill="#F9A825" stroke="#D06000" stroke-width="1.5"/>
+      <text x="11" y="15.5" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff" font-family="serif">$</text>
+    </svg>
+    <input type="file" id="cheat-file" style="display:none" accept="*/*">
+    <span id="coins">60</span>
+  </div>
+  <div id="game-title">Idle Garden</div>
+  <div id="weather-ind"><span class="w-next">☁ weather incoming…</span></div>
+</div>
+
+<!-- MIDDLE -->
+<div id="mid">
+
+  <!-- GARDEN SIDE -->
+  <div id="garden-side">
+    <!-- Planting bar -->
+    <div id="pbar">
+      <span id="pbar-txt"></span>
+      <div>
+        <button class="sm-btn" id="stop-btn">■ Pause</button>
+        <button class="sm-btn" id="desel-btn">✕ Deselect</button>
+      </div>
+    </div>
+    <!-- Garden SVG -->
+    <div id="gwrap">
+      <div id="notif-bar"></div>
+      <svg id="gsvg" viewBox="0 0 920 490">
+        <defs>
+          <linearGradient id="sky-g" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stop-color="#87CEEB"/>
+            <stop offset="60%"  stop-color="#C8E6F8"/>
+            <stop offset="100%" stop-color="#D4EAC8"/>
+          </linearGradient>
+          <linearGradient id="soil-g" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stop-color="#5C3D2A"/>
+            <stop offset="40%"  stop-color="#4A2E1C"/>
+            <stop offset="100%" stop-color="#331E0E"/>
+          </linearGradient>
+          <linearGradient id="grass-g" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"  stop-color="#5D9B30"/>
+            <stop offset="100%" stop-color="#3E7020"/>
+          </linearGradient>
+          <radialGradient id="sun-g" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"   stop-color="#FFF9C4"/>
+            <stop offset="60%"  stop-color="#FFD54F"/>
+            <stop offset="100%" stop-color="#FFB300"/>
+          </radialGradient>
+          <pattern id="pt-soil" patternUnits="userSpaceOnUse" width="28" height="28">
+            <rect width="28" height="28" fill="transparent"/>
+            <circle cx="5"  cy="8"  r="1.2" fill="#2C1A0E" opacity=".5"/>
+            <circle cx="18" cy="5"  r=".9"  fill="#5C3520" opacity=".35"/>
+            <circle cx="12" cy="20" r="1.5" fill="#2C1A0E" opacity=".42"/>
+            <circle cx="24" cy="16" r=".8"  fill="#5C3520" opacity=".3"/>
+            <circle cx="3"  cy="25" r=".7"  fill="#2C1A0E" opacity=".48"/>
+            <circle cx="20" cy="26" r="1"   fill="#5C3520" opacity=".25"/>
+            <rect x="13" y="11" width="3" height="1" rx=".5" fill="#2C1A0E" opacity=".2" transform="rotate(15 13 11)"/>
+          </pattern>
+          <filter id="sh" x="-40%" y="-40%" width="180%" height="180%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000060"/>
+          </filter>
+        </defs>
+        <!-- Sky -->
+        <rect width="920" height="490" fill="url(#sky-g)"/>
+        <!-- Sun -->
+        <circle cx="820" cy="60" r="34" fill="url(#sun-g)" opacity=".92"/>
+        <g stroke="#FFD54F" stroke-width="2" opacity=".32">
+          <line x1="820" y1="18" x2="820" y2="10"/><line x1="820" y1="102" x2="820" y2="110"/>
+          <line x1="778" y1="60" x2="770" y2="60"/><line x1="862" y1="60" x2="870" y2="60"/>
+          <line x1="790" y1="30" x2="784" y2="24"/><line x1="850" y1="90" x2="856" y2="96"/>
+          <line x1="850" y1="30" x2="856" y2="24"/><line x1="790" y1="90" x2="784" y2="96"/>
+        </g>
+        <!-- Clouds -->
+        <g opacity=".75">
+          <ellipse cx="130" cy="58" rx="48" ry="19" fill="#fff"/>
+          <ellipse cx="162" cy="47" rx="36" ry="17" fill="#fff"/>
+          <ellipse cx="100" cy="52" rx="30" ry="15" fill="#fff"/>
+        </g>
+        <g opacity=".5">
+          <ellipse cx="490" cy="74" rx="54" ry="20" fill="#fff"/>
+          <ellipse cx="525" cy="62" rx="38" ry="17" fill="#fff"/>
+          <ellipse cx="458" cy="69" rx="32" ry="15" fill="#fff"/>
+        </g>
+        <!-- Hills -->
+        <ellipse cx="180" cy="298" rx="270" ry="75" fill="#7CB342" opacity=".28"/>
+        <ellipse cx="680" cy="305" rx="320" ry="70" fill="#689F38" opacity=".26"/>
+        <ellipse cx="440" cy="300" rx="230" ry="65" fill="#8BC34A" opacity=".16"/>
+        <!-- Grass -->
+        <rect x="0" y="310" width="920" height="50" fill="url(#grass-g)"/>
+        <g opacity=".45" fill="none" stroke-linecap="round">
+          <line x1="30"  y1="310" x2="30"  y2="298" stroke="#8BC34A" stroke-width="1.5"/>
+          <line x1="80"  y1="310" x2="79"  y2="296" stroke="#69A023" stroke-width="1.5"/>
+          <line x1="140" y1="310" x2="141" y2="299" stroke="#8BC34A" stroke-width="1.5"/>
+          <line x1="200" y1="310" x2="200" y2="297" stroke="#69A023" stroke-width="1.5"/>
+          <line x1="270" y1="310" x2="269" y2="298" stroke="#8BC34A" stroke-width="1.5"/>
+          <line x1="340" y1="310" x2="340" y2="296" stroke="#69A023" stroke-width="1.5"/>
+          <line x1="420" y1="310" x2="420" y2="299" stroke="#8BC34A" stroke-width="1.5"/>
+          <line x1="500" y1="310" x2="500" y2="297" stroke="#69A023" stroke-width="1.5"/>
+          <line x1="570" y1="310" x2="571" y2="298" stroke="#8BC34A" stroke-width="1.5"/>
+          <line x1="640" y1="310" x2="640" y2="296" stroke="#69A023" stroke-width="1.5"/>
+          <line x1="710" y1="310" x2="710" y2="299" stroke="#8BC34A" stroke-width="1.5"/>
+          <line x1="780" y1="310" x2="779" y2="298" stroke="#69A023" stroke-width="1.5"/>
+          <line x1="850" y1="310" x2="850" y2="296" stroke="#8BC34A" stroke-width="1.5"/>
+          <line x1="900" y1="310" x2="900" y2="299" stroke="#69A023" stroke-width="1.5"/>
+        </g>
+        <!-- Soil -->
+        <rect x="0" y="352" width="920" height="138" fill="url(#soil-g)"/>
+        <rect x="0" y="352" width="920" height="138" fill="url(#pt-soil)" opacity=".45"/>
+        <!-- Fence rails -->
+        <rect x="0" y="334" width="920" height="5"  rx="2" fill="#8B5E3C"/>
+        <rect x="0" y="347" width="920" height="4"  rx="2" fill="#7A4F30"/>
+        <!-- Fence posts -->
+        <g fill="#9C6B3C">
+          <rect x="10"  y="318" width="7" height="34" rx="2"/>
+          <rect x="60"  y="318" width="7" height="34" rx="2"/>
+          <rect x="110" y="318" width="7" height="34" rx="2"/>
+          <rect x="160" y="318" width="7" height="34" rx="2"/>
+          <rect x="210" y="318" width="7" height="34" rx="2"/>
+          <rect x="260" y="318" width="7" height="34" rx="2"/>
+          <rect x="310" y="318" width="7" height="34" rx="2"/>
+          <rect x="360" y="318" width="7" height="34" rx="2"/>
+          <rect x="410" y="318" width="7" height="34" rx="2"/>
+          <rect x="460" y="318" width="7" height="34" rx="2"/>
+          <rect x="510" y="318" width="7" height="34" rx="2"/>
+          <rect x="560" y="318" width="7" height="34" rx="2"/>
+          <rect x="610" y="318" width="7" height="34" rx="2"/>
+          <rect x="660" y="318" width="7" height="34" rx="2"/>
+          <rect x="710" y="318" width="7" height="34" rx="2"/>
+          <rect x="760" y="318" width="7" height="34" rx="2"/>
+          <rect x="810" y="318" width="7" height="34" rx="2"/>
+          <rect x="860" y="318" width="7" height="34" rx="2"/>
+          <rect x="905" y="318" width="7" height="34" rx="2"/>
+        </g>
+        <!-- Post tops -->
+        <g fill="#B07840">
+          <polygon points="13,318 17,312 21,318"/><polygon points="63,318 67,312 71,318"/>
+          <polygon points="113,318 117,312 121,318"/><polygon points="163,318 167,312 171,318"/>
+          <polygon points="213,318 217,312 221,318"/><polygon points="263,318 267,312 271,318"/>
+          <polygon points="313,318 317,312 321,318"/><polygon points="363,318 367,312 371,318"/>
+          <polygon points="413,318 417,312 421,318"/><polygon points="463,318 467,312 471,318"/>
+          <polygon points="513,318 517,312 521,318"/><polygon points="563,318 567,312 571,318"/>
+          <polygon points="613,318 617,312 621,318"/><polygon points="663,318 667,312 671,318"/>
+          <polygon points="713,318 717,312 721,318"/><polygon points="763,318 767,312 771,318"/>
+          <polygon points="813,318 817,312 821,318"/><polygon points="863,318 867,312 871,318"/>
+        </g>
+        <!-- Plants -->
+        <g id="plants-g"></g>
+        <g id="weather-g" style="pointer-events:none"></g>
+        <g id="hover-g"   style="pointer-events:none"></g>
+      </svg>
+      <!-- Tooltip -->
+      <!-- Plant tooltip (no harvest button) -->
+      <div id="tt">
+        <svg id="tt-svg" width="56" height="72" viewBox="-26 -70 52 76" style="flex-shrink:0;overflow:visible"></svg>
+        <div style="flex:1;min-width:0">
+          <div id="tt-name">–</div>
+          <div id="tt-stage">–</div>
+          <div id="tt-detail"></div>
+          <div id="tt-val"></div>
+        </div>
+        <div id="tt-acts">
+          <button class="tbt do-rem"  id="tt-rem-btn">Remove</button>
+          <button class="tbt do-cls"  id="tt-cls-btn">Close</button>
+        </div>
+      </div>
+      <!-- Fruit tooltip (individual fruit, with harvest) -->
+      <div id="fruit-tt">
+        <svg id="ftt-svg" width="44" height="54" viewBox="-20 -20 40 40" style="flex-shrink:0;overflow:visible"></svg>
+        <div style="flex:1;min-width:0">
+          <div id="ftt-name"></div>
+          <div id="ftt-size"></div>
+          <div id="ftt-muts"></div>
+          <div id="ftt-val"></div>
+        </div>
+        <div id="ftt-acts">
+          <button class="tbt do-harv" id="ftt-harv-btn" style="display:none">Harvest</button>
+          <button class="tbt do-cls"  id="ftt-cls-btn">Close</button>
+        </div>
+      </div>
+    </div><!-- /gwrap -->
+  </div><!-- /garden-side -->
+
+  <!-- ─── SHOP PANEL ─── -->
+  <div id="shop-panel">
+    <div id="shop-hdr">
+      <div id="shop-hdr-top">
+        <span id="shop-label">Shop</span>
+        <div id="restock-wrap">
+          <span id="restock-label">Next restock</span>
+          <span id="restock-timer">–:–</span>
+        </div>
+      </div>
+      <div id="restock-bar-bg">
+        <div id="restock-bar-fill"></div>
+      </div>
+    </div>
+    <div id="shop-scroll"></div>
+  </div>
+
+</div><!-- /mid -->
+
+<!-- FOOTER -->
+<div id="ftr">
+  <div id="ftr-stats">Plants: <span id="ft-tot">0</span> · Ready: <span id="ft-rdy">0</span></div>
+  <div id="ftr-hint">Pick a seed from the shop → click soil to plant · click plant to harvest</div>
+  <button id="sell-all">Sell All Ready ($<span id="ft-val">0</span>)</button>
+</div>
+
+<!-- NOTIFICATIONS (inside gwrap via JS, placed here for reference) -->
+
+<!-- ADMIN PANEL (floating, non-blocking) -->
+<div id="adm-panel">
+  <div id="adm-titlebar">
+    <span>◈ ADMIN CONSOLE</span>
+    <button onclick="document.getElementById('adm-panel').style.display='none'" style="background:none;border:none;color:#FF5555;cursor:pointer;font-size:16px;line-height:1;padding:0 2px">×</button>
+  </div>
+  <div id="adm-body">
+    <div class="adm-section">
+      <div class="adm-label">⚡ Weather</div>
+      <div class="adm-btns" id="adm-weather-btns"></div>
+      <div class="adm-btns" style="margin-top:4px">
+        <button class="adm-btn" onclick="activeWeathers=[];renderWeatherOverlay();renderUI();showNotif('☀ All weather cleared','#90A4AE')">Clear All</button>
+      </div>
+    </div>
+    <div class="adm-section">
+      <div class="adm-label">📦 Restock</div>
+      <div class="adm-btns" id="adm-stock-btns"></div>
+    </div>
+    <div class="adm-section">
+      <div class="adm-label">💰 Coins</div>
+      <div class="adm-btns">
+        <button class="adm-btn" onclick="coins+=100;renderUI()">+$100</button>
+        <button class="adm-btn" onclick="coins+=500;renderUI()">+$500</button>
+        <button class="adm-btn" onclick="coins+=2000;renderUI()">+$2k</button>
+        <button class="adm-btn" onclick="coins+=10000;renderUI()">+$10k</button>
+      </div>
+    </div>
+    <div class="adm-section">
+      <div class="adm-label">📢 Announce</div>
+      <div style="display:flex;gap:4px;margin-top:4px">
+        <input id="adm-msg" type="text" placeholder="Broadcast message…" style="flex:1;background:#050E05;border:1px solid #00FF4130;color:#00FF41;font-family:'Courier New',monospace;font-size:10px;padding:5px 7px;border-radius:4px;outline:none">
+        <button class="adm-btn" onclick="adminAnnounce()">SEND</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+// ══════════════════════════════════════
+// PLANT DEFINITIONS
+// ══════════════════════════════════════
+// ══════════════════════════════════════
+// RARITIES
+// ══════════════════════════════════════
+const RARITIES = {
+  common:    {label:'Common',    color:'#9E9E9E', glow:'#555',    restockChance:1.00, restockAmt:4},
+  uncommon:  {label:'Uncommon',  color:'#66BB6A', glow:'#2E7D32', restockChance:0.90, restockAmt:3},
+  rare:      {label:'Rare',      color:'#42A5F5', glow:'#1565C0', restockChance:0.50, restockAmt:2},
+  epic:      {label:'Epic',      color:'#CE93D8', glow:'#6A1B9A', restockChance:0.35, restockAmt:2},
+  legendary: {label:'Legendary', color:'#FFB74D', glow:'#E65100', restockChance:0.20, restockAmt:1},
+  mythic:    {label:'Mythic',    color:'#F48FB1', glow:'#880E4F', restockChance:0.10, restockAmt:1},
+};
+
+const WEATHER_TYPES = {
+  rain:        {label:'Rain',        icon:'🌧',color:'#64B5F6',overlay:'#1565C0',bgOp:.10, dur:120000, mutChance:.45, scaleMult:1.18, sellMult:1.25},
+  thunderstorm:{label:'Thunderstorm',icon:'⛈',color:'#CE93D8',overlay:'#1A0050',bgOp:.22, dur:90000,  mutChance:.65, scaleMult:1.42, sellMult:1.90},
+  frost:       {label:'Frost',       icon:'❄',color:'#B3E5FC',overlay:'#E3F2FD',bgOp:.16, dur:100000, mutChance:.50, scaleMult:0.90, sellMult:1.60},
+  heatwave:    {label:'Heatwave',    icon:'🔥',color:'#FF7043',overlay:'#BF360C',bgOp:.13, dur:110000, mutChance:.40, scaleMult:1.22, sellMult:1.35},
+  fog:         {label:'Fog',         icon:'🌫',color:'#B0BEC5',overlay:'#607D8B',bgOp:.28, dur:130000, mutChance:.35, scaleMult:1.06, sellMult:1.45},
+  goldenHour:  {label:'Golden Hour', icon:'✨',color:'#FFD54F',overlay:'#FF8F00',bgOp:.08, dur:80000,  mutChance:.55, scaleMult:1.12, sellMult:2.30},
+  acidRain:    {label:'Acid Rain',   icon:'☠',color:'#AED581',overlay:'#33691E',bgOp:.14, dur:95000,  mutChance:.60, scaleMult:1.30, sellMult:1.75},
+};
+const WEATHER_CHECK_MS = 600000; // 10 min
+let activeWeathers = [];
+let nextWeatherCheckAt = Date.now() + WEATHER_CHECK_MS;
+
+const DEFS = {
+  // ── Common ──────────────────────────
+  basil:      {name:'Basil',       rarity:'common',    cost:12,  sell:0,    fruitSell:12,  grow:6000,  fruitGrow:4500,  fruitSlots:2, multiHarvest:true },
+  lettuce:    {name:'Lettuce',     rarity:'common',    cost:15,  sell:0,    fruitSell:28,  grow:8000,  fruitGrow:7000,  fruitSlots:1, multiHarvest:true },
+  carrot:     {name:'Carrot',      rarity:'common',    cost:18,  sell:75,   fruitSell:0,   grow:12000, fruitGrow:0,     fruitSlots:0, multiHarvest:false},
+  potato:     {name:'Potato',      rarity:'common',    cost:14,  sell:55,   fruitSell:0,   grow:10000, fruitGrow:0,     fruitSlots:0, multiHarvest:false},
+  // ── Uncommon ────────────────────────
+  tomato:     {name:'Tomato',      rarity:'uncommon',  cost:28,  sell:0,    fruitSell:22,  grow:12000, fruitGrow:8000,  fruitSlots:3, multiHarvest:true },
+  strawberry: {name:'Strawberry',  rarity:'uncommon',  cost:32,  sell:0,    fruitSell:16,  grow:10000, fruitGrow:5000,  fruitSlots:4, multiHarvest:true },
+  eggplant:   {name:'Eggplant',    rarity:'uncommon',  cost:35,  sell:0,    fruitSell:42,  grow:14000, fruitGrow:9000,  fruitSlots:2, multiHarvest:true },
+  raspberry:  {name:'Raspberry',   rarity:'uncommon',  cost:26,  sell:0,    fruitSell:18,  grow:9000,  fruitGrow:5500,  fruitSlots:5, multiHarvest:true },
+  // ── Rare ────────────────────────────
+  pepper:     {name:'Pepper',      rarity:'rare',      cost:55,  sell:0,    fruitSell:32,  grow:16000, fruitGrow:10000, fruitSlots:3, multiHarvest:true },
+  corn:       {name:'Corn',        rarity:'rare',      cost:48,  sell:140,  fruitSell:0,   grow:20000, fruitGrow:0,     fruitSlots:0, multiHarvest:false},
+  blueberry:  {name:'Blueberry',   rarity:'rare',      cost:60,  sell:0,    fruitSell:26,  grow:14000, fruitGrow:7000,  fruitSlots:5, multiHarvest:true },
+  chilli:     {name:'Chilli',      rarity:'rare',      cost:52,  sell:0,    fruitSell:38,  grow:18000, fruitGrow:11000, fruitSlots:4, multiHarvest:true },
+  // ── Epic ────────────────────────────
+  pumpkin:    {name:'Pumpkin',     rarity:'epic',      cost:110, sell:320,  fruitSell:0,   grow:26000, fruitGrow:0,     fruitSlots:0, multiHarvest:false},
+  watermelon: {name:'Watermelon',  rarity:'epic',      cost:140, sell:420,  fruitSell:0,   grow:32000, fruitGrow:0,     fruitSlots:0, multiHarvest:false},
+  mango:      {name:'Mango',       rarity:'epic',      cost:120, sell:0,    fruitSell:85,  grow:22000, fruitGrow:14000, fruitSlots:2, multiHarvest:true },
+  // ── Legendary ───────────────────────
+  dragonfruit:{name:'Dragon Fruit',rarity:'legendary', cost:280, sell:0,    fruitSell:180, grow:35000, fruitGrow:20000, fruitSlots:3, multiHarvest:true },
+  saffron:    {name:'Saffron',     rarity:'legendary', cost:320, sell:900,  fruitSell:0,   grow:40000, fruitGrow:0,     fruitSlots:0, multiHarvest:false},
+  // ── Mythic ──────────────────────────
+  truffle:    {name:'Truffle',     rarity:'mythic',    cost:600, sell:2400, fruitSell:0,   grow:55000, fruitGrow:0,     fruitSlots:0, multiHarvest:false},
+};
+
+// ══════════════════════════════════════
+// STOCK
+// ══════════════════════════════════════
+const STOCK = {
+  basil:      {current:8,  max:12},
+  lettuce:    {current:7,  max:10},
+  carrot:     {current:6,  max:10},
+  potato:     {current:6,  max:10},
+  tomato:     {current:5,  max:8},
+  strawberry: {current:4,  max:7},
+  eggplant:   {current:4,  max:7},
+  raspberry:  {current:5,  max:8},
+  pepper:     {current:3,  max:5},
+  corn:       {current:3,  max:5},
+  blueberry:  {current:2,  max:4},
+  chilli:     {current:0,  max:4},  // starts sold out — rare
+  pumpkin:    {current:2,  max:3},
+  watermelon: {current:1,  max:3},
+  mango:      {current:0,  max:2},
+  dragonfruit:{current:1,  max:2},
+  saffron:    {current:0,  max:1},  // starts sold out — legendary
+  truffle:    {current:0,  max:1},  // starts sold out — mythic
+};
+const RESTOCK_MS = 150000; // 2.5 min = 150 sec
+function nextRestockBoundary(){ return Math.ceil(Date.now()/RESTOCK_MS)*RESTOCK_MS; }
+let nextRestockAt = nextRestockBoundary();
+
+function doRestock(silent=false) {
+  Object.keys(STOCK).forEach(k => {
+    const d = DEFS[k]; if(!d) return;
+    const r = RARITIES[d.rarity];
+    if(Math.random() < r.restockChance) {
+      const s = STOCK[k];
+      s.current = Math.min(s.max, s.current + 1 + Math.floor(Math.random() * r.restockAmt));
+    }
+  });
+  nextRestockAt = nextRestockBoundary();
+  if(!silent) showNotif('🌿 Shop restocked!', '#7CB342');
+  renderShop();
+}
+
+// ══════════════════════════════════════
+// FRUIT POSITIONS (local SVG coords from plant base)
+// ══════════════════════════════════════
+// Possible grow points per plant type — more options than fruit slots.
+// Each fruit picks one randomly when it starts, so placement varies each cycle.
+const GROW_POINTS = {
+  tomato:     [{x:-14,y:-28},{x:12,y:-33},{x:-7,y:-40},{x:16,y:-46},{x:-3,y:-51},{x:8,y:-26}],
+  strawberry: [{x:-16,y:-11},{x:13,y:-9},{x:-11,y:-19},{x:14,y:-21},{x:-5,y:-25},{x:7,y:-14},{x:0,y:-28}],
+  pepper:     [{x:-14,y:-21},{x:12,y:-29},{x:-9,y:-36},{x:13,y:-41},{x:1,y:-45},{x:-5,y:-26}],
+  basil:      [{x:-8,y:-28},{x:9,y:-33},{x:-5,y:-38},{x:7,y:-42},{x:0,y:-45}],
+  lettuce:    [{x:-5,y:-15},{x:5,y:-17},{x:0,y:-20}],
+  eggplant:   [{x:-10,y:-30},{x:12,y:-40},{x:-4,y:-48},{x:8,y:-52}],
+  raspberry:  [{x:-14,y:-14},{x:8,y:-12},{x:-6,y:-21},{x:12,y:-20},{x:-2,y:-26},{x:10,y:-27},{x:-10,y:-28}],
+  blueberry:  [{x:-16,y:-30},{x:-4,y:-30},{x:4,y:-30},{x:16,y:-30},{x:-10,y:-24},{x:10,y:-24},{x:0,y:-26}],
+  chilli:     [{x:-12,y:-22},{x:10,y:-30},{x:-6,y:-37},{x:14,y:-43},{x:1,y:-47}],
+  mango:      [{x:-14,y:-32},{x:16,y:-44},{x:-6,y:-52},{x:18,y:-58},{x:-18,y:-48}],
+  dragonfruit:[{x:-16,y:-40},{x:14,y:-52},{x:0,y:-64},{x:-10,y:-58},{x:16,y:-44}],
+};
+
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+let coins=12, plants=[], nid=0;
+let selSeed=null, planting=false, ttId=null;
+
+// ══════════════════════════════════════
+// SVG HELPERS
+// ══════════════════════════════════════
+const f=n=>(+n).toFixed(1);
+const L=(x1,y1,x2,y2,c='#3D6B1A',w=1.5)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
+const E=(cx,cy,rx,ry,fill,a=0,op='')=>{const tr=a?` transform="rotate(${a} ${cx} ${cy})"`:'',$o=op?` opacity="${op}"`:'' ;return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}"${tr}${$o}/>`;}
+const C=(cx,cy,r,fill,op='')=>{const $o=op?` opacity="${op}"`:'' ;return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"${$o}/>`;}
+const mound=(r=9)=>E(0,0,r,r*0.38,'#5C3520',0,'0.55');
+
+// ══════════════════════════════════════
+// PLANT BODY SVG (side view, grows up from 0,0)
+// ══════════════════════════════════════
+function plantBodySVG(type,stage){
+  const s=stage;
+  if(type==='tomato'){
+    if(s===0)return mound(7)+C(0,-2,3,'#6D4C41');
+    if(s===1)return mound(8)+L(0,0,0,-16,'#4A7C20',1.8)+E(-5,-9,5,2.2,'#66BB6A',-25)+E(5,-13,5,2.2,'#66BB6A',25);
+    if(s===2)return mound(11)+L(0,0,0,-32,'#4A7C20',2)+L(0,-12,-15,-20,'#3D6B1A')+L(0,-22,13,-29,'#3D6B1A')+E(-13,-21,7,3,'#4CAF50',-20)+E(-5,-23,6,2.5,'#66BB6A',-8)+E(12,-30,7,3,'#4CAF50',20)+E(4,-31,5,2.5,'#66BB6A',8)+E(-3,-32,5,2.5,'#81C784',-5);
+    return mound(14)+L(0,0,0,-52,'#4A7C20',2.5)+L(0,-14,-18,-23,'#3D6B1A',2)+L(0,-28,18,-37,'#3D6B1A',2)+L(0,-42,-14,-49,'#3D6B1A',1.5)+E(-16,-24,9,3.5,'#388E3C',-25)+E(5,-26,7,3,'#4CAF50',-8)+E(16,-38,9,3.5,'#388E3C',25)+E(-5,-39,7,3,'#4CAF50',8)+E(-12,-50,7,3,'#4CAF50',-20)+E(4,-52,5,2.5,'#66BB6A',10);
+  }
+  if(type==='strawberry'){
+    if(s===0)return mound(7)+C(0,-2,3,'#6D4C41');
+    if(s===1)return mound(8)+E(0,-8,6,4,'#81C784',0)+E(-4,-6,5,3,'#66BB6A',-30)+E(4,-6,5,3,'#66BB6A',30);
+    if(s===2)return mound(11)+[-9,0,9].map(ox=>E(ox,-9,6,4,'#4CAF50',0)+E(ox-4,-7,5,3,'#66BB6A',-30)+E(ox+4,-7,5,3,'#66BB6A',30)).join('')+L(-9,-2,-14,-1,'#4A7C20',1)+L(9,-2,14,-1,'#4A7C20',1);
+    return mound(14)+[-12,0,12].map(ox=>E(ox,-10,7,4.5,'#2E7D32',0)+E(ox-5,-8,6,3.5,'#4CAF50',-30)+E(ox+5,-8,6,3.5,'#4CAF50',30)).join('')+E(-8,-19,6,4,'#388E3C',0)+E(8,-19,6,4,'#388E3C',0)+L(-12,-3,-19,-1,'#4A7C20',1.2)+L(12,-3,19,-1,'#4A7C20',1.2)+C(-19,-2,2,'#558B2F')+C(19,-2,2,'#558B2F');
+  }
+  if(type==='pepper'){
+    if(s===0)return mound(7)+C(0,-2,3,'#6D4C41');
+    if(s===1)return mound(8)+L(0,0,0,-14,'#4A7C20',1.8)+E(-4,-8,5,2.5,'#66BB6A',-20)+E(4,-11,5,2.5,'#66BB6A',20);
+    if(s===2)return mound(11)+L(0,0,0,-28,'#4A7C20',2)+L(0,-10,-11,-17,'#3D6B1A')+L(0,-20,11,-26,'#3D6B1A')+E(-10,-18,7,3,'#4CAF50',-15)+E(10,-27,7,3,'#4CAF50',15)+E(-2,-28,5,2.5,'#66BB6A',-5);
+    return mound(14)+L(0,0,0,-46,'#4A7C20',2.5)+L(0,-11,-14,-20,'#3D6B1A',2)+L(0,-24,14,-32,'#3D6B1A',2)+L(0,-36,-12,-43,'#3D6B1A',1.5)+E(-12,-21,8,3.5,'#388E3C',-20)+E(5,-23,7,3,'#4CAF50',-5)+E(12,-33,8,3.5,'#388E3C',20)+E(-5,-34,7,3,'#4CAF50',5)+E(-10,-44,7,3,'#4CAF50',-15)+E(3,-46,5,2.5,'#66BB6A',8);
+  }
+  if(type==='basil'){
+    if(s===0)return mound(6)+C(0,-2,2.5,'#6D4C41');
+    if(s===1)return mound(7)+L(0,0,0,-12,'#4A7C20',1.5)+E(-3,-7,5,2.5,'#81C784',-10)+E(3,-10,5,2.5,'#81C784',10);
+    if(s===2)return mound(10)+L(0,0,0,-25,'#4A7C20',2)+E(-6,-7,6,3,'#66BB6A',-20)+E(6,-10,6,3,'#66BB6A',20)+E(-5,-16,6,3,'#4CAF50',-15)+E(5,-19,6,3,'#4CAF50',15)+E(-3,-24,5,2.5,'#A5D6A7',-5);
+    return mound(12)+L(0,0,0,-37,'#4A7C20',2)+E(-7,-7,7,3.5,'#1B5E20',-25)+E(7,-10,7,3.5,'#1B5E20',25)+E(-6,-16,7,3.5,'#2E7D32',-20)+E(6,-19,7,3.5,'#2E7D32',20)+E(-5,-25,6,3,'#388E3C',-15)+E(5,-28,6,3,'#388E3C',15)+E(-3,-34,5,2.5,'#4CAF50',-10)+E(2,-37,4,2,'#66BB6A',5)+E(0,-39,2,6,'#81C784')+C(0,-45,2.5,'#FFF9C4','0.85');
+  }
+  if(type==='lettuce'){
+    if(s===0)return mound(6)+C(0,-2,2.5,'#6D4C41');
+    if(s===1)return mound(7)+E(0,-7,7,5,'#A5D6A7',0)+E(-4,-5,5,3,'#81C784',-25)+E(4,-5,5,3,'#81C784',25);
+    if(s===2)return mound(10)+E(-10,-10,9,4,'#66BB6A',-20)+E(10,-10,9,4,'#66BB6A',20)+E(0,-14,12,8,'#4CAF50',0)+E(0,-14,8,5.5,'#66BB6A',0)+E(0,-14,4,3,'#C8E6C9',0);
+    return mound(12)+E(-13,-12,10,4.5,'#2E7D32',-25)+E(13,-12,10,4.5,'#2E7D32',25)+E(-8,-18,9,4,'#388E3C',-15)+E(8,-18,9,4,'#388E3C',15);
+  }
+  if(type==='carrot'){
+    if(s===0)return mound(6)+C(0,-2,3,'#6D4C41');
+    if(s===1)return mound(7)+L(0,-2,0,-15,'#4A7C20',1.5)+E(-3,-9,4,2,'#66BB6A',-30)+E(3,-12,4,2,'#66BB6A',30);
+    if(s===2)return mound(10)+C(0,-3,5,'#FF7043','0.45')+C(0,-5,3.5,'#FF5722','0.35')+L(0,-3,0,-26,'#4A7C20',1.8)+E(-5,-11,6,2.5,'#4CAF50',-30)+E(5,-16,6,2.5,'#4CAF50',30)+E(-4,-22,5.5,2,'#66BB6A',-25)+E(3,-26,5,1.8,'#66BB6A',20);
+    return mound(12)+C(0,-4,7,'#FF7043','0.65')+C(0,-5,5,'#FF5722','0.5')+E(0,4,5,8,'#FF5722','0','0.25')+L(0,-4,0,-40,'#4A7C20',2)+E(-6,-12,8,3,'#2E7D32',-35)+E(6,-17,8,3,'#2E7D32',35)+E(-6,-23,7.5,2.8,'#388E3C',-28)+E(6,-28,7.5,2.8,'#388E3C',28)+E(-5,-32,7,2.5,'#4CAF50',-22)+E(5,-37,6.5,2.2,'#4CAF50',22)+E(-4,-38,5.5,2,'#66BB6A',-18)+E(2,-40,4.5,1.8,'#81C784',12);
+  }
+  if(type==='corn'){
+    if(s===0)return mound(7)+C(0,-2,3,'#6D4C41');
+    if(s===1)return mound(8)+L(0,0,0,-20,'#4A7C20',2)+E(-4,-11,7,2.5,'#66BB6A',-15)+E(4,-16,7,2.5,'#66BB6A',15);
+    if(s===2)return mound(11)+L(0,0,0,-44,'#4A7C20',2.5)+E(-4,-13,15,3,'#4CAF50',-20)+E(4,-24,15,3,'#4CAF50',20)+E(-4,-35,13,2.8,'#66BB6A',-15)+E(4,-42,11,2.5,'#66BB6A',15);
+    return mound(14)+L(0,0,0,-72,'#558B2F',3)+E(-5,-14,20,3.5,'#2E7D32',-25)+E(5,-28,20,3.5,'#2E7D32',25)+E(-5,-42,18,3,'#388E3C',-20)+E(5,-56,17,3,'#388E3C',20)+E(-4,-64,13,2.5,'#4CAF50',-15)+E(4,-70,11,2.2,'#4CAF50',15)+E(13,-38,5.5,11,'#4A7C20',0)+E(13,-38,4.5,10,'#5D8A2A',0)+E(13,-38,3.5,8,'#FDD835',0)+L(14,-29,17,-23,'#FFFDE7',1.5)+L(15,-30,18,-24,'#FFFDE7',1)+L(0,-72,0,-80,'#558B2F',2)+E(-5,-75,7,1.8,'#7CB342',-20)+E(5,-75,7,1.8,'#7CB342',20)+E(0,-79,6,1.5,'#7CB342',0);
+  }
+  if(type==='pumpkin'){
+    if(s===0)return mound(8)+C(0,-2,3.5,'#6D4C41');
+    if(s===1)return mound(10)+`<path d="M-6,0 Q4,-8 18,-4" stroke="#4A7C20" stroke-width="2.2" fill="none" stroke-linecap="round"/>`+E(18,-6,8,5,'#66BB6A',18);
+    if(s===2)return mound(14)+`<path d="M-8,0 Q2,-8 14,-6 Q22,-4 30,2" stroke="#4A7C20" stroke-width="2.5" fill="none" stroke-linecap="round"/>`+E(-14,-2,12,7,'#558B2F',-14)+E(26,0,12,8,'#4CAF50',20)+E(6,-12,18,13,'#EF6C00',6)+E(6,-12,14,11,'#FF8F00',6)+E(6,-12,5,13,'#D84315',6,'0.3')+L(0,-6,0,-24,'#558B2F',1.8)+E(0,-26,3,5,'#66BB6A',0);
+    return mound(22)+
+      `<path d="M-20,0 Q-36,-6 -42,-16 Q-46,-24 -40,-28" stroke="#4A7C20" stroke-width="2" fill="none" stroke-linecap="round"/>`+
+      `<path d="M22,0 Q36,-5 44,-14 Q50,-22 46,-32" stroke="#3D6B1A" stroke-width="2" fill="none" stroke-linecap="round"/>`+
+      `<path d="M46,-32 Q52,-36 48,-40" stroke="#4A7C20" stroke-width="1.5" fill="none" stroke-linecap="round"/>`+
+      E(-32,-14,16,8,'#2E7D32',-30)+E(-30,-22,14,7,'#388E3C',-25)+
+      E(40,-12,16,8,'#2E7D32',28)+E(38,-22,14,7,'#388E3C',22)+
+      E(-8,-3,12,8,'#388E3C',-12)+E(16,-2,12,8,'#388E3C',18)+
+      `<ellipse cx="2" cy="-28" rx="34" ry="30" fill="#BF3600" opacity="0.12"/>`+
+      E(-18,-28,9,26,'#BF3600',0)+E(-9,-28,10,28,'#D84315',0)+E(0,-28,11,28,'#E65100',0)+E(9,-28,10,28,'#D84315',0)+E(18,-28,9,26,'#BF3600',0)+
+      L(-18,-8,-18,-54,'#C54000',0.8)+L(-9,-6,-9,-56,'#C54000',1)+L(0,-5,0,-58,'#C54000',1.2)+L(9,-6,9,-56,'#C54000',1)+L(18,-8,18,-54,'#C54000',0.8)+
+      E(0,-59,3.5,5,'#4E342E')+L(0,-59,3,-68,'#558B2F',2.5)+
+      E(-4,-70,6,4,'#4CAF50',-20)+E(5,-69,6,4,'#4CAF50',20)+
+      `<path d="M46,-32 Q58,-28 56,-18 Q54,-10 62,-6" stroke="#66BB6A" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+  }
+  if(type==='watermelon'){
+    if(s===0)return mound(8)+C(0,-2,3.5,'#6D4C41');
+    if(s===1)return mound(9)+`<path d="M0,0 Q10,-5 18,-3" stroke="#4A7C20" stroke-width="2" fill="none" stroke-linecap="round"/>`+E(18,-4,6,4,'#66BB6A',15);
+    if(s===2)return mound(14)+`<path d="M-4,0 Q6,-7 18,-5 Q28,-3 34,4" stroke="#4A7C20" stroke-width="2.2" fill="none" stroke-linecap="round"/>`+E(-12,-2,10,6,'#558B2F',-12)+E(28,2,10,7,'#4CAF50',20)+E(12,-6,19,12,'#388E3C',8)+E(12,-6,17,11,'#7CB342',8)+L(12,-6,10,-18,'#4A7C20',1.5)+E(10,-20,5,5,'#66BB6A',0);
+    return mound(24)+
+      `<path d="M-22,2 Q-40,-4 -50,-18 Q-56,-28 -48,-36" stroke="#4A7C20" stroke-width="2.2" fill="none" stroke-linecap="round"/>`+
+      `<path d="M26,2 Q44,-3 54,-16 Q60,-26 54,-38" stroke="#3D6B1A" stroke-width="2" fill="none" stroke-linecap="round"/>`+
+      E(-40,-12,18,9,'#2E7D32',-35)+E(-38,-24,16,8,'#388E3C',-28)+
+      E(46,-10,18,9,'#2E7D32',32)+E(44,-22,15,8,'#388E3C',25)+
+      E(-10,-2,14,9,'#388E3C',-15)+E(18,-1,13,9,'#388E3C',20)+
+      `<ellipse cx="2" cy="-32" rx="28" ry="36" fill="#1A5E20"/>`+
+      `<ellipse cx="2" cy="-32" rx="28" ry="36" fill="#2E7D32" opacity="0.7"/>`+
+      `<path d="M-24,-18 Q-18,-54 -14,-64" stroke="#1B5E20" stroke-width="1.2" fill="none" opacity="0.5"/>`+
+      `<path d="M-14,-16 Q-8,-54 -6,-66" stroke="#1B5E20" stroke-width="1.5" fill="none" opacity="0.55"/>`+
+      `<path d="M-2,-15 Q2,-56 4,-68" stroke="#1B5E20" stroke-width="1.8" fill="none" opacity="0.55"/>`+
+      `<path d="M10,-15 Q14,-56 16,-66" stroke="#1B5E20" stroke-width="1.5" fill="none" opacity="0.5"/>`+
+      `<path d="M20,-16 Q24,-54 26,-64" stroke="#1B5E20" stroke-width="1.2" fill="none" opacity="0.45"/>`+
+      `<ellipse cx="2" cy="-56" rx="16" ry="10" fill="#E53935" opacity="0.2"/>`+
+      `<ellipse cx="-12" cy="-46" rx="7" ry="12" fill="#fff" opacity="0.06"/>`+
+      `<circle cx="-12" cy="-30" r="1.8" fill="#1A0000" opacity="0.35"/><circle cx="-4" cy="-40" r="1.5" fill="#1A0000" opacity="0.28"/><circle cx="6" cy="-28" r="1.8" fill="#1A0000" opacity="0.35"/><circle cx="14" cy="-36" r="1.5" fill="#1A0000" opacity="0.3"/>`+
+      `<path d="M54,-38 Q64,-34 62,-24 Q60,-16 68,-12" stroke="#66BB6A" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+  }
+  if(type==='mango'){
+    if(s===0)return mound(7)+C(0,-2,3,'#6D4C41');
+    if(s===1)return mound(9)+L(0,0,0,-20,'#6B4226',2)+E(-5,-12,6,3,'#66BB6A',-20)+E(5,-15,6,3,'#66BB6A',20);
+    if(s===2)return mound(12)+L(0,0,0,-38,'#6B4226',2.5)+L(0,-14,-12,-22,'#5A3820',2)+L(0,-22,12,-32,'#5A3820',2)+E(-12,-24,9,4,'#4CAF50',-20)+E(11,-33,9,4,'#4CAF50',20)+E(-5,-36,7,4,'#66BB6A',-10)+E(5,-39,7,4,'#66BB6A',10);
+    // EPIC mango tree — dense rounded canopy, tropical trunk
+    return mound(18)+
+      // Trunk — thick, slightly curved
+      `<path d="M-3,0 Q-4,-20 -2,-38 Q0,-52 2,-60" stroke="#6B4226" stroke-width="7" fill="none" stroke-linecap="round"/>`+
+      `<path d="M3,0 Q4,-18 2,-36 Q0,-50 -1,-58" stroke="#7A5030" stroke-width="5" fill="none" stroke-linecap="round"/>`+
+      // Main branches
+      `<path d="M0,-52 Q-16,-58 -22,-66" stroke="#5A3820" stroke-width="3.5" fill="none" stroke-linecap="round"/>`+
+      `<path d="M0,-52 Q16,-58 22,-66" stroke="#5A3820" stroke-width="3.5" fill="none" stroke-linecap="round"/>`+
+      `<path d="M0,-52 Q2,-64 0,-72" stroke="#5A3820" stroke-width="3" fill="none" stroke-linecap="round"/>`+
+      `<path d="M-8,-46 Q-20,-50 -26,-58" stroke="#6B4226" stroke-width="2.5" fill="none" stroke-linecap="round"/>`+
+      `<path d="M8,-46 Q22,-50 26,-58" stroke="#6B4226" stroke-width="2.5" fill="none" stroke-linecap="round"/>`+
+      // Dense leaf canopy — multiple layered ellipses
+      E(0,-72,28,20,'#1B5E20',0)+E(0,-72,26,18,'#2E7D32',0)+
+      E(-16,-66,18,14,'#2E7D32',-12)+E(16,-66,18,14,'#2E7D32',12)+
+      E(-24,-60,14,12,'#388E3C',-20)+E(24,-60,14,12,'#388E3C',20)+
+      E(-8,-78,16,12,'#2E7D32',-8)+E(8,-78,16,12,'#2E7D32',8)+
+      E(0,-80,18,12,'#388E3C',0)+
+      E(-18,-74,13,10,'#4CAF50',-15)+E(18,-74,13,10,'#4CAF50',15)+
+      E(0,-86,14,10,'#4CAF50',0)+E(-10,-82,12,8,'#66BB6A',-10)+E(10,-82,12,8,'#66BB6A',10)+
+      // Lighter highlight patches on canopy
+      E(-4,-76,10,7,'#81C784',5,'0.35')+E(8,-70,9,6,'#A5D6A7',-5,'0.25');
+  }
+  if(type==='dragonfruit'){
+    if(s===0)return mound(8)+C(0,-2,3,'#6D4C41');
+    if(s===1)return mound(9)+E(0,-10,5,10,'#4CAF50',0)+E(-5,-10,2.5,5,'#66BB6A',-42)+E(5,-10,2.5,5,'#66BB6A',42);
+    if(s===2)return mound(12)+E(0,-22,6,22,'#388E3C',0)+E(-7,-20,3,7,'#4CAF50',-52)+E(7,-20,3,7,'#4CAF50',52)+E(-7,-30,3,6,'#4CAF50',-44)+E(7,-30,3,6,'#4CAF50',44)+E(-5,-38,2.5,5,'#66BB6A',-34)+E(5,-38,2.5,5,'#66BB6A',34)+C(0,-5,6,'#E91E63','0.18');
+    const spineRow=(cy,n,lr)=>Array.from({length:n},(_,i)=>{const ox=(lr?-1:1)*(5+i*0.5);const ang=lr?-(35+i*3):(35+i*3);return `<ellipse cx="${ox}" cy="${cy}" rx="2.5" ry="6.5" fill="${i%2?'#388E3C':'#2E7D32'}" transform="rotate(${ang} ${ox} ${cy})"/>`;}).join('');
+    return mound(20)+
+      `<ellipse cx="-7" cy="-50" rx="6" ry="52" fill="#1B5E20"/>`+
+      `<ellipse cx="0" cy="-52" rx="7" ry="54" fill="#2E7D32"/>`+
+      `<ellipse cx="7" cy="-50" rx="6" ry="52" fill="#1B5E20"/>`+
+      `<ellipse cx="0" cy="-52" rx="3" ry="50" fill="#388E3C" opacity="0.4"/>`+
+      spineRow(-14,4,true)+spineRow(-14,4,false)+spineRow(-28,4,true)+spineRow(-28,4,false)+
+      spineRow(-42,4,true)+spineRow(-42,4,false)+spineRow(-56,4,true)+spineRow(-56,4,false)+
+      spineRow(-68,3,true)+spineRow(-68,3,false)+spineRow(-78,3,true)+spineRow(-78,3,false)+
+      [0,1,2,3,4,5,6,7].map(i=>{const a=i*45,r=a*Math.PI/180;return `<ellipse cx="${(Math.cos(r)*8).toFixed(1)}" cy="${(-94+Math.sin(r)*8).toFixed(1)}" rx="2" ry="7" fill="#FFF9C4" transform="rotate(${a} ${(Math.cos(r)*8).toFixed(1)} ${(-94+Math.sin(r)*8).toFixed(1)})"/>`;}).join('')+
+      C(0,-94,5,'#FFE082')+C(0,-94,3,'#FFF9C4');
+  }
+  if(type==='saffron'){
+    if(s===0)return mound(7)+C(0,-2,2.5,'#6D4C41');
+    if(s===1)return mound(8)+L(-4,0,-6,-16,'#8B7340',1.8)+L(4,0,6,-16,'#8B7340',1.8)+E(-6,-19,2.5,7,'#CE93D8',-12)+E(6,-19,2.5,7,'#CE93D8',12);
+    if(s===2)return mound(11)+L(-6,0,-10,-26,'#8B7340',2)+L(0,0,0,-28,'#8B7340',2)+L(6,0,10,-26,'#8B7340',2)+E(-10,-30,3,9,'#9575CD',-14)+E(0,-32,3,9,'#9575CD',0)+E(10,-30,3,9,'#9575CD',14)+C(-10,-22,2,'#FF8F00')+C(0,-24,2,'#FF8F00')+C(10,-22,2,'#FF8F00');
+    const petal=(cx,cy,col,rot)=>`<ellipse cx="${cx}" cy="${cy}" rx="4" ry="11" fill="${col}" transform="rotate(${rot} ${cx} ${cy})" opacity="0.92"/>`;
+    const stigmas=(ox,oy)=>[-1,0,1].map(i=>`<line x1="${ox+i*2}" y1="${oy}" x2="${ox+i*2}" y2="${oy-14}" stroke="#FF6F00" stroke-width="1.8" stroke-linecap="round"/><circle cx="${ox+i*2}" cy="${oy-14}" r="2.2" fill="#FF8F00"/>`).join('');
+    return mound(18)+
+      [-16,-10,-5,0,5,10,16,20,-20].map((ox,i)=>`<line x1="${ox}" y1="0" x2="${ox+(i%3-1)*4}" y2="${-(35+i*5)}" stroke="${i%2?'#7A6030':'#5D4A20'}" stroke-width="1.6" stroke-linecap="round"/>`).join('')+
+      `<line x1="-14" y1="0" x2="-11" y2="-44" stroke="#8B7340" stroke-width="2" stroke-linecap="round"/>`+
+      [-60,-20,20,60,100,140].map(a=>petal(-11+(Math.cos(a*Math.PI/180)*9),-46+(Math.sin(a*Math.PI/180)*9),a%2===0?'#7B1FA2':'#9C27B0',a)).join('')+
+      C(-11,-46,4,'#7B1FA2')+C(-11,-46,2.5,'#FFF9C4','0.9')+stigmas(-11,-46)+
+      `<line x1="0" y1="0" x2="0" y2="-52" stroke="#8B7340" stroke-width="2" stroke-linecap="round"/>`+
+      [-60,-20,20,60,100,140].map(a=>petal(0+(Math.cos(a*Math.PI/180)*9),-52+(Math.sin(a*Math.PI/180)*9),a%2===0?'#6A1B9A':'#AB47BC',a)).join('')+
+      C(0,-52,4,'#6A1B9A')+C(0,-52,2.5,'#FFF9C4','0.9')+stigmas(0,-52)+
+      `<line x1="14" y1="0" x2="11" y2="-44" stroke="#8B7340" stroke-width="2" stroke-linecap="round"/>`+
+      [-60,-20,20,60,100,140].map(a=>petal(14+(Math.cos(a*Math.PI/180)*9),-46+(Math.sin(a*Math.PI/180)*9),a%2===0?'#8E24AA':'#CE93D8',a)).join('')+
+      C(14,-46,4,'#8E24AA')+C(14,-46,2.5,'#FFF9C4','0.9')+stigmas(14,-46)+
+      `<line x1="-22" y1="0" x2="-18" y2="-40" stroke="#8B7340" stroke-width="1.8" stroke-linecap="round"/>`+
+      `<ellipse cx="-18" cy="-42" rx="3.5" ry="10" fill="#7E57C2" transform="rotate(-40 -18 -42)"/>`+
+      `<ellipse cx="-24" cy="-40" rx="3.5" ry="10" fill="#9575CD" transform="rotate(40 -24 -40)"/>`+
+      C(-21,-40,3,'#7B1FA2')+stigmas(-21,-40)+
+      `<line x1="22" y1="0" x2="22" y2="-36" stroke="#8B7340" stroke-width="1.8" stroke-linecap="round"/>`+
+      `<ellipse cx="22" cy="-38" rx="4" ry="10" fill="#4A148C" transform="rotate(10 22 -38)"/>`+
+      `<ellipse cx="22" cy="-38" rx="3" ry="9" fill="#7E57C2" opacity="0.6" transform="rotate(10 22 -38)"/>`;
+  }
+  if(type==='truffle'){
+    if(s===0)return mound(8)+C(0,-2,3,'#6D4C41');
+    if(s===1)return mound(9)+L(-4,0,-6,-14,'#5D4030',1.8)+L(4,0,6,-14,'#5D4030',1.8)+E(-6,-16,5,3,'#8D6E63',-14)+E(6,-16,5,3,'#8D6E63',14);
+    if(s===2)return mound(14)+L(-5,0,-10,-22,'#5D4030',2)+L(0,0,0,-24,'#5D4030',2.2)+L(5,0,10,-22,'#5D4030',2)+E(-10,-24,8,4,'#795548',-20)+E(0,-26,9,4.5,'#795548',0)+E(10,-24,8,4,'#795548',20)+C(-6,4,5.5,'#4A2818','0.6')+C(5,5,5,'#5D3820','0.5')+C(-1,7,4,'#3E2010','0.45');
+    const bumpyTruffle=(cx,cy,r,c)=>{let s2='';const bumps=Math.round(r*2.2);for(let i=0;i<bumps;i++){const a=(i/bumps)*Math.PI*2;const br=r*0.28;const bx=cx+Math.cos(a)*(r*0.72);const by=cy+Math.sin(a)*(r*0.65);s2+=`<circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="${br.toFixed(1)}" fill="${c}"/>`;}s2+=`<circle cx="${cx}" cy="${cy}" r="${(r*0.88).toFixed(1)}" fill="${c}" opacity="0.85"/>`;return s2;};
+    return mound(22)+
+      `<ellipse cx="0" cy="6" rx="22" ry="8" fill="#2C1A0E" opacity="0.55"/>`+
+      bumpyTruffle(-14,8,10,'#3E2010')+bumpyTruffle(10,9,9,'#4A2818')+bumpyTruffle(-2,12,8,'#3E2010')+
+      bumpyTruffle(18,6,6,'#5D3820')+bumpyTruffle(-22,7,5.5,'#4A2818')+
+      [-14,10,-2,18,-22].map(ox=>Array.from({length:6},(_,i)=>{const a=(i/6)*Math.PI*2;const ex=ox+Math.cos(a)*18;const ey=12+Math.sin(a)*8;return `<line x1="${ox}" y1="8" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="#5D4030" stroke-width="0.8" opacity="0.35" stroke-linecap="round"/>`;}).join('')).join('')+
+      `<path d="M-2,0 Q-4,-18 -6,-28 Q-8,-38 -4,-46" stroke="#3E2010" stroke-width="4" fill="none" stroke-linecap="round"/>`+
+      `<path d="M2,0 Q4,-16 6,-26 Q8,-38 4,-44" stroke="#4A2818" stroke-width="3.5" fill="none" stroke-linecap="round"/>`+
+      `<path d="M-6,-28 Q-14,-34 -18,-42" stroke="#3E2010" stroke-width="2.5" fill="none" stroke-linecap="round"/>`+
+      `<path d="M-6,-28 Q-4,-36 -2,-44" stroke="#4A2818" stroke-width="2" fill="none" stroke-linecap="round"/>`+
+      `<path d="M4,-26 Q12,-32 16,-40" stroke="#3E2010" stroke-width="2.5" fill="none" stroke-linecap="round"/>`+
+      `<path d="M4,-26 Q6,-36 8,-44" stroke="#4A2818" stroke-width="2" fill="none" stroke-linecap="round"/>`+
+      `<path d="M-18,-42 Q-22,-48 -20,-56" stroke="#3E2010" stroke-width="2" fill="none" stroke-linecap="round"/>`+
+      `<path d="M-18,-42 Q-12,-48 -14,-56" stroke="#4A2818" stroke-width="1.8" fill="none" stroke-linecap="round"/>`+
+      `<path d="M16,-40 Q20,-46 18,-54" stroke="#3E2010" stroke-width="2" fill="none" stroke-linecap="round"/>`+
+      `<path d="M16,-40 Q10,-48 12,-56" stroke="#4A2818" stroke-width="1.8" fill="none" stroke-linecap="round"/>`+
+      [-20,-14,-2,8,18,12,-18,10].map((cx,i)=>{const cy=[-56,-56,-44,-44,-54,-56,-46,-56][i];const col=i%2?'#4E342E':'#3E2723';return `<ellipse cx="${cx}" cy="${cy}" rx="5" ry="3.5" fill="${col}"/>`;}).join('')+
+      [[-8,-50],[-16,-60],[4,-48],[20,-50],[-24,-52],[14,-62],[-6,-66],[22,-44]].map(([cx,cy],i)=>
+        `<circle cx="${cx}" cy="${cy}" r="${1+i%2}" fill="#A5D6A7" opacity="0.7"><animate attributeName="opacity" values="0.2;0.8;0.2" dur="${1.5+i*0.4}s" repeatCount="indefinite"/><animate attributeName="cy" values="${cy};${cy-6};${cy}" dur="${2+i*0.3}s" repeatCount="indefinite"/></circle>`
+      ).join('');
+  }
+  if(type==='blueberry'){
+    if(s===0)return mound(6)+C(0,-2,2.5,'#6D4C41');
+    if(s===1)return mound(7)+L(-3,0,-4,-10,'#7A5230',1.5)+L(3,0,4,-10,'#7A5230',1.5);
+    if(s===2)return mound(10)+L(-4,0,-8,-14,'#7A5230',2)+L(0,0,0,-15,'#7A5230',2)+L(4,0,8,-14,'#7A5230',2)+L(-8,-14,-11,-22,'#6B4820',1.5)+L(8,-14,11,-22,'#6B4820',1.5);
+    // Mature: bare woody branches, no leaves — berries are fruit slots
+    return mound(12)+
+      L(-5,0,-10,-16,'#7A5230',2.2)+L(-2,0,-3,-18,'#7A5230',2)+L(2,0,3,-18,'#7A5230',2)+L(5,0,10,-16,'#7A5230',2.2)+
+      L(-10,-16,-14,-24,'#6B4820',1.8)+L(-3,-18,-4,-26,'#6B4820',1.5)+L(3,-18,4,-26,'#6B4820',1.5)+L(10,-16,14,-24,'#6B4820',1.8)+
+      L(-14,-24,-16,-30,'#5A3A14',1.2)+L(-4,-26,-4,-30,'#5A3A14',1.2)+L(4,-26,4,-30,'#5A3A14',1.2)+L(14,-24,16,-30,'#5A3A14',1.2);
+  }
+  return '';
+}
+// ══════════════════════════════════════
+function oneFruitSVG(type,progress){
+  const rdy=progress>=1;
+  const p=Math.min(1,progress);
+  if(type==='tomato'){
+    const r=Math.max(1.8,6.5*(rdy?1:p*0.82));
+    const fill=rdy?'#D32F2F':p<0.35?'#2E7D32':p<0.7?'#FF7043':'#E53935';
+    const stem=L(0,-3,0,-1,'#3D6B1A',1);
+    const calyx=rdy?`<path d="M${f(-r*.5)},0 Q0,${f(-r*.25)} ${f(r*.5)},0" stroke="#388E3C" stroke-width="1.2" fill="none"/>`:'';
+    const hl=rdy?C(f(-r*.35),f(r*.65),f(r*.28),'#FF8A80','0.55'):'';
+    return stem+calyx+C(0,f(r),f(r),fill)+hl;
+  }
+  if(type==='strawberry'){
+    const r=Math.max(1.8,5.5*(rdy?1:p*0.78));
+    const stem=L(0,-3,0,-1,'#3D6B1A',1);
+    const calyx=rdy?E(0,0,f(r*.7),f(r*.35),'#388E3C',0):'';
+    if(rdy)return stem+calyx+
+      `<path d="M0,0 Q${f(-r)},${f(r*.7)} ${f(-r)},${f(r*1.5)} Q${f(-r)},${f(r*2)} 0,${f(r*2.4)} Q${f(r)},${f(r*2)} ${f(r)},${f(r*1.5)} Q${f(r)},${f(r*.7)} 0,0" fill="#D81B60"/>`+
+      C(f(-1.5),f(r*1.1),f(r*.28),'#FF80AB','0.5');
+    return stem+C(0,f(r),f(r),p<0.4?'#E8F5E9':'#FFCDD2');
+  }
+  if(type==='pepper'){
+    const h=Math.max(3,11*(rdy?1:p*0.8));
+    const w=Math.max(1.4,4*(rdy?1:p*0.8));
+    const fill=rdy?'#D32F2F':p<0.5?'#2E7D32':'#FF9800';
+    const cap=L(0,-4,0,-1,'#3D6B1A',1)+`<ellipse cx="0" cy="0" rx="${f(w*.7)}" ry="${f(w*.4)}" fill="#388E3C"/>`;
+    const hl=rdy?E(f(-w*.35),f(h*.45),f(w*.38),f(h*.5),'#FF8A80',0,'0.4'):'';
+    return cap+E(0,f(h),f(w),f(h),fill)+hl;
+  }
+  if(type==='basil'){
+    const sc=Math.max(.3,p);
+    if(rdy)return `<circle r="1.5" fill="#2E7D32"/>` +
+      E(0,5,5.5,3,'#1B5E20',0)+E(-4,3,4,2.2,'#2E7D32',-25)+E(4,3,4,2.2,'#2E7D32',25);
+    return C(0,f(3*sc),f(5*sc),'#A5D6A7','0.75');
+  }
+  if(type==='lettuce'){
+    if(rdy)return E(0,9,14,9,'#4CAF50',0)+E(0,9,10,7,'#66BB6A',0)+E(0,9,6,4,'#A5D6A7',0)+E(0,9,3,2.2,'#DCEDC8',0);
+    const sc=Math.max(.25,p);
+    return E(0,f(9*sc),f(14*sc),f(9*sc),'#81C784',0,'0.65');
+  }
+  if(type==='eggplant'){
+    const h=Math.max(3,13*(rdy?1:p*0.8));const w=Math.max(2,5.5*(rdy?1:p*0.8));
+    const fill=rdy?'#6A1B9A':p<0.4?'#C5CAE9':'#9C27B0';
+    const cap=L(0,-4,0,-1,'#3D6B1A',1.5)+E(0,0,f(w*.7),f(w*.4),'#388E3C',0);
+    const hl=rdy?E(f(-w*.3),f(h*.5),f(w*.28),f(h*.38),'#CE93D8',0,'0.5'):'';
+    return cap+E(0,f(h),f(w),f(h),fill)+hl;
+  }
+  if(type==='raspberry'){
+    const r=Math.max(1.5,4*(rdy?1:p*0.75));
+    if(rdy){
+      const d2=r*.7,cy=r*1.2;
+      return `<circle r="1.2" fill="#2E7D32"/>` +
+        `<circle cx="0" cy="${f(cy-r)}" r="${f(d2)}" fill="#C62828"/>` +
+        `<circle cx="${f(-r*.8)}" cy="${f(cy-r*.4)}" r="${f(d2)}" fill="#D32F2F"/>` +
+        `<circle cx="${f(r*.8)}" cy="${f(cy-r*.4)}" r="${f(d2)}" fill="#C62828"/>` +
+        `<circle cx="${f(-r*.5)}" cy="${f(cy+r*.4)}" r="${f(d2)}" fill="#E53935"/>` +
+        `<circle cx="${f(r*.5)}" cy="${f(cy+r*.4)}" r="${f(d2)}" fill="#D32F2F"/>` +
+        `<circle cx="0" cy="${f(cy+r*.2)}" r="${f(d2*.8)}" fill="#B71C1C" opacity=".6"/>`;
+    }
+    return C(0,f(r),f(r),p<0.4?'#FFCDD2':'#EF9A9A');
+  }
+  if(type==='blueberry'){
+    const r=Math.max(1.5,4.5*(rdy?1:p*0.78));
+    const fill=rdy?'#4527A0':p<0.35?'#C5CAE9':'#7986CB';
+    if(rdy){
+      const crown=`<path d="M${f(-r*.5)},0 L${f(-r*.2)},${f(-r*.35)} L0,0 L${f(r*.2)},${f(-r*.35)} L${f(r*.5)},0" fill="#1B5E20"/>`;
+      return crown+C(0,f(r),f(r),fill)+C(f(-r*.35),f(r*.7),f(r*.25),'#7986CB','0.55');
+    }
+    return C(0,f(r),f(r),fill,'0.8');
+  }
+  if(type==='chilli'){
+    const h=Math.max(3,14*(rdy?1:p*0.82));const w=Math.max(1.2,3*(rdy?1:p*0.82));
+    const fill=rdy?'#C62828':p<0.45?'#2E7D32':'#FF6F00';
+    const cap=L(0,-4,0,-1,'#3D6B1A',1)+E(0,0,f(w*.8),f(w*.45),'#388E3C',0);
+    return cap+`<path d="M${f(-w)},0 Q${f(-w*1.1)},${f(h*.5)} 0,${f(h*2)} Q${f(w*1.1)},${f(h*.5)} ${f(w)},0 Z" fill="${fill}"/>`;
+  }
+  if(type==='mango'){
+    const h=Math.max(3,14*(rdy?1:p*0.8));
+    const w=Math.max(2,9*(rdy?1:p*0.8));
+    const stem=L(0,-4,0,-1,'#5A3820',1.5);
+    if(rdy){
+      const leaf=`<ellipse cx="4" cy="-2" rx="5" ry="2.2" fill="#4CAF50" transform="rotate(25 4 -2)"/>`;
+      return stem+leaf+
+        `<ellipse cx="-1" cy="${f(h*.7)}" rx="${f(w)}" ry="${f(h)}" fill="#F57C00"/>`+
+        `<ellipse cx="-1" cy="${f(h*.7)}" rx="${f(w*.85)}" ry="${f(h*.85)}" fill="#FF8F00" opacity="0.55"/>`+
+        `<ellipse cx="${f(w*.35)}" cy="${f(h*.45)}" rx="${f(w*.5)}" ry="${f(h*.45)}" fill="#E53935" opacity="0.32"/>`+
+        `<ellipse cx="${f(-w*.3)}" cy="${f(h*.9)}" rx="${f(w*.3)}" ry="${f(h*.28)}" fill="#FFEE58" opacity="0.42"/>`;
+    }
+    const col=p<0.4?'#A5D6A7':p<0.7?'#66BB6A':'#FFF176';
+    return stem+E(-1,f(h*.7),f(w),f(h),col,'0','0.85');
+  }
+  if(type==='dragonfruit'){
+    const r=Math.max(2,9*(rdy?1:p*0.8));
+    const stem=L(0,-4,0,-1,'#2E7D32',1.5)+E(0,0,f(r*.35),f(r*.2),'#388E3C',0);
+    if(rdy){
+      const finAngles=[-130,-100,-70,-50,50,70,100,130];
+      const finStr=finAngles.map(a=>{
+        const rad=a*Math.PI/180;
+        const fx=(Math.cos(rad)*r*1.05).toFixed(1);
+        const fy=(r*1.1+Math.sin(rad)*r*0.95).toFixed(1);
+        return `<ellipse cx="${fx}" cy="${fy}" rx="2.8" ry="7" fill="${Math.abs(a)>90?'#2E7D32':'#388E3C'}" transform="rotate(${a} ${fx} ${fy})"/>`;
+      }).join('');
+      return stem+finStr+C(0,f(r*1.1),f(r),'#E91E63')+C(f(-r*.3),f(r*.8),f(r*.28),'#F48FB1','0.55');
+    }
+    return stem+C(0,f(r*1.1),f(r),p<0.4?'#FCE4EC':'#F48FB1');
+  }
+  return '';
+}
+
+// ══════════════════════════════════════
+// PRICE CALCULATION (scale + mutation)
+// ══════════════════════════════════════
+function calcFruitPrice(type, fr){
+  const base=DEFS[type].fruitSell;
+  const sizeMult=Math.pow(Math.max(0.5,fr.scale||1), 1.6);
+  const mutMult=(fr.mutations||[]).reduce((acc,m)=>acc*(WEATHER_TYPES[m]?.sellMult||1),1);
+  return Math.max(1,Math.round(base*sizeMult*mutMult));
+}
+function calcPlantPrice(p){
+  const base=DEFS[p.type].sell;
+  const sizeMult=Math.pow(Math.max(0.5,p.sizeScale||1), 1.6);
+  const mutMult=(p.mutations||[]).reduce((acc,m)=>acc*(WEATHER_TYPES[m]?.sellMult||1),1);
+  return Math.max(1,Math.round(base*sizeMult*mutMult));
+}
+
+// ══════════════════════════════════════
+// WEATHER
+// ══════════════════════════════════════
+function spawnWeather(){
+  const keys=Object.keys(WEATHER_TYPES);
+  const type=keys[Math.floor(Math.random()*keys.length)];
+  const wd=WEATHER_TYPES[type];
+  activeWeathers=activeWeathers.filter(aw=>aw.type!==type);
+  activeWeathers.push({type, endAt:Date.now()+wd.dur});
+  renderWeatherOverlay(); renderGarden(); renderUI();
+  showNotif(`${wd.icon} ${wd.label} rolls in!`, wd.color);
+}
+
+function renderWeatherOverlay(){
+  const g=document.getElementById('weather-g');
+  if(!g)return;
+  if(!activeWeathers.length){g.innerHTML='';return;}
+  let s='';
+  activeWeathers.forEach(aw=>{
+    const wd=WEATHER_TYPES[aw.type];
+    const type=aw.type;
+    s+=`<rect width="920" height="490" fill="${wd.overlay}" opacity="${wd.bgOp}"/>`;
+    if(type==='rain'||type==='acidRain'){
+      const col=type==='acidRain'?'#C5E1A5':'#90CAF9';
+      for(let i=0;i<42;i++){
+        const x=(Math.random()*960-20).toFixed(0);
+        const sy=(Math.random()*-180).toFixed(0);
+        const dur=(0.45+Math.random()*0.5).toFixed(2);
+        const del=(-(Math.random()*1.2)).toFixed(2);
+        s+=`<line x1="${x}" y1="${sy}" x2="${(+x+5).toFixed(0)}" y2="${(+sy+18).toFixed(0)}" stroke="${col}" stroke-width="1.3" opacity="0.65"><animateTransform attributeName="transform" type="translate" from="0 0" to="-8 510" dur="${dur}s" begin="${del}s" repeatCount="indefinite"/></line>`;
+      }
+    }
+    if(type==='thunderstorm'){
+      for(let i=0;i<38;i++){
+        const x=(Math.random()*960-20).toFixed(0);
+        const sy=(Math.random()*-180).toFixed(0);
+        const dur=(0.35+Math.random()*0.4).toFixed(2);
+        const del=(-(Math.random()*0.8)).toFixed(2);
+        s+=`<line x1="${x}" y1="${sy}" x2="${(+x+6).toFixed(0)}" y2="${(+sy+22).toFixed(0)}" stroke="#90CAF9" stroke-width="1.6" opacity="0.7"><animateTransform attributeName="transform" type="translate" from="0 0" to="-10 510" dur="${dur}s" begin="${del}s" repeatCount="indefinite"/></line>`;
+      }
+      s+=`<path d="M520,60 L498,185 L522,185 L494,360" stroke="#E040FB" stroke-width="4" fill="none" opacity="0"><animate attributeName="opacity" values="0;0;0;0;0;0;0;1;0.4;1;0;0;0;0;0;0;0;0;0;0" dur="5s" repeatCount="indefinite"/></path>`;
+      s+=`<path d="M280,40 L268,130 L282,130 L265,270" stroke="#CE93D8" stroke-width="3" fill="none" opacity="0"><animate attributeName="opacity" values="0;0;0;0;0;0;0;0;0;0;0;0;1;0.3;0;0;0;0;0;0" dur="7s" repeatCount="indefinite"/></path>`;
+    }
+    if(type==='frost'){
+      for(let i=0;i<34;i++){
+        const x=(Math.random()*920).toFixed(0);
+        const r=(1+Math.random()*2.5).toFixed(1);
+        const dur=(2+Math.random()*2.5).toFixed(2);
+        const del=(-(Math.random()*4)).toFixed(2);
+        const dx=((Math.random()-0.5)*40).toFixed(0);
+        s+=`<circle cx="${x}" cy="0" r="${r}" fill="#E3F2FD" opacity="0.85"><animateTransform attributeName="transform" type="translate" from="${dx} 0" to="${(+dx+20).toFixed(0)} 510" dur="${dur}s" begin="${del}s" repeatCount="indefinite"/></circle>`;
+      }
+    }
+    if(type==='heatwave'){
+      for(let i=0;i<7;i++){
+        const y=80+i*60;
+        s+=`<path d="M0,${y} Q230,${y-5} 460,${y} Q690,${y+5} 920,${y}" stroke="#FF7043" stroke-width="1.2" fill="none" opacity="0.22"><animate attributeName="d" values="M0,${y} Q230,${y-5} 460,${y} Q690,${y+5} 920,${y};M0,${y} Q230,${y+5} 460,${y} Q690,${y-5} 920,${y};M0,${y} Q230,${y-5} 460,${y} Q690,${y+5} 920,${y}" dur="${1.8+i*0.2}s" repeatCount="indefinite"/></path>`;
+      }
+    }
+    if(type==='fog'){
+      for(let i=0;i<6;i++){
+        const cx=(80+i*160).toFixed(0);
+        const cy=(160+Math.random()*180).toFixed(0);
+        const dur=(4+i*1.3).toFixed(1);
+        s+=`<ellipse cx="${cx}" cy="${cy}" rx="230" ry="65" fill="#B0BEC5" opacity="0.2"><animate attributeName="cx" values="${cx};${(+cx+35).toFixed(0)};${cx}" dur="${dur}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.2;0.32;0.2" dur="${(dur*.8).toFixed(1)}s" repeatCount="indefinite"/></ellipse>`;
+      }
+    }
+    if(type==='goldenHour'){
+      for(let i=0;i<24;i++){
+        const x=(20+Math.random()*880).toFixed(0);
+        const y=(80+Math.random()*360).toFixed(0);
+        const del=(-(Math.random()*4)).toFixed(2);
+        const dur=(1.2+Math.random()*1.5).toFixed(2);
+        s+=`<circle cx="${x}" cy="${y}" r="2.8" fill="#FFD54F" opacity="0"><animate attributeName="opacity" values="0;1;0" dur="${dur}s" begin="${del}s" repeatCount="indefinite"/><animate attributeName="r" values="1;3.5;1" dur="${dur}s" begin="${del}s" repeatCount="indefinite"/></circle>`;
+      }
+    }
+  });
+  g.innerHTML=s;
+}
+
+// Assign a random grow point and random scale to a fruit slot when it starts growing
+function startFruitGrowing(fr, type){
+  const gps = GROW_POINTS[type] || [];
+  fr.startedAt = Date.now();
+  fr.gpIdx     = Math.floor(Math.random() * gps.length);
+  fr.scale     = 0.70 + Math.random() * 0.62;
+  fr.mutations = [];
+}
+
+// Render one fruit at its stored grow point and scale
+function mutationFX(mut, scale, isRipe){
+  const s=scale||1;
+  if(!isRipe) return '';
+  switch(mut){
+    case 'rain':
+      return [-3,0,3].map((ox,i)=>`<ellipse cx="${ox}" cy="${(s*8+i*3).toFixed(1)}" rx="${(s*1.2).toFixed(1)}" ry="${(s*2.8).toFixed(1)}" fill="#64B5F6" opacity="0.75"><animate attributeName="cy" values="${(s*5).toFixed(1)};${(s*18).toFixed(1)};${(s*5).toFixed(1)}" dur="${(0.9+i*0.3).toFixed(1)}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.8;0;0.8" dur="${(0.9+i*0.3).toFixed(1)}s" repeatCount="indefinite"/></ellipse>`).join('');
+    case 'thunderstorm':
+      return `<polyline points="${(-s*10).toFixed(1)},${(-s*4).toFixed(1)} ${(-s*6).toFixed(1)},${(s*1).toFixed(1)} ${(-s*9).toFixed(1)},${(s*3).toFixed(1)} ${(-s*5).toFixed(1)},${(s*8).toFixed(1)}" stroke="#E040FB" stroke-width="1.5" fill="none" opacity="0"><animate attributeName="opacity" values="0;0;0;0;1;0.4;1;0;0" dur="2.2s" repeatCount="indefinite"/></polyline>`+
+        `<polyline points="${(s*8).toFixed(1)},${(-s*5).toFixed(1)} ${(s*5).toFixed(1)},0 ${(s*9).toFixed(1)},${(s*3).toFixed(1)} ${(s*4).toFixed(1)},${(s*9).toFixed(1)}" stroke="#F8BBD0" stroke-width="1.5" fill="none" opacity="0"><animate attributeName="opacity" values="0;0;1;0.3;1;0;0;0;0" dur="3.1s" repeatCount="indefinite"/></polyline>`+
+        `<circle r="${(s*13).toFixed(1)}" fill="none" stroke="#CE93D8" stroke-width="1" opacity="0"><animate attributeName="opacity" values="0;0;0;0.6;0;0;0;0;0" dur="1.8s" repeatCount="indefinite"/></circle>`;
+    case 'frost':
+      return [0,60,120].map(a=>`<g transform="rotate(${a})"><line x1="0" y1="${(-s*3).toFixed(1)}" x2="0" y2="${(-s*12).toFixed(1)}" stroke="#B3E5FC" stroke-width="1.2" opacity="0.85"/><line x1="${(-s*3).toFixed(1)}" y1="${(-s*7).toFixed(1)}" x2="${(s*3).toFixed(1)}" y2="${(-s*7).toFixed(1)}" stroke="#B3E5FC" stroke-width="0.8" opacity="0.7"/><line x1="${(-s*2).toFixed(1)}" y1="${(-s*10).toFixed(1)}" x2="${(s*2).toFixed(1)}" y2="${(-s*10).toFixed(1)}" stroke="#B3E5FC" stroke-width="0.7" opacity="0.6"/></g>`).join('')+
+        `<circle r="${(s*2.5).toFixed(1)}" fill="#E3F2FD" opacity="0.6"><animate attributeName="opacity" values="0.4;0.9;0.4" dur="2.5s" repeatCount="indefinite"/></circle>`;
+    case 'heatwave':
+      return [0,1,2].map(i=>`<circle r="${(s*(6+i*5)).toFixed(1)}" fill="none" stroke="#FF7043" stroke-width="${(1.5-i*0.4).toFixed(1)}" opacity="0"><animate attributeName="r" values="${(s*(4+i*5)).toFixed(1)};${(s*(14+i*5)).toFixed(1)}" dur="${(1.2+i*0.4).toFixed(1)}s" begin="${(i*0.4).toFixed(1)}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.7;0" dur="${(1.2+i*0.4).toFixed(1)}s" begin="${(i*0.4).toFixed(1)}s" repeatCount="indefinite"/></circle>`).join('');
+    case 'fog':
+      return `<ellipse rx="${(s*14).toFixed(1)}" ry="${(s*6).toFixed(1)}" fill="#B0BEC5" opacity="0"><animate attributeName="opacity" values="0;0.28;0" dur="3s" repeatCount="indefinite"/><animate attributeName="ry" values="${(s*4).toFixed(1)};${(s*8).toFixed(1)};${(s*4).toFixed(1)}" dur="3s" repeatCount="indefinite"/></ellipse>`+
+        `<ellipse cx="${(s*6).toFixed(1)}" cy="${(-s*4).toFixed(1)}" rx="${(s*10).toFixed(1)}" ry="${(s*4).toFixed(1)}" fill="#CFD8DC" opacity="0"><animate attributeName="opacity" values="0;0.22;0" dur="4s" begin="1s" repeatCount="indefinite"/></ellipse>`;
+    case 'goldenHour':
+      return Array.from({length:8},(_,i)=>{const a=i*45,r=a*Math.PI/180;const x1=(Math.cos(r)*s*5).toFixed(1),y1=(Math.sin(r)*s*5).toFixed(1),x2=(Math.cos(r)*s*14).toFixed(1),y2=(Math.sin(r)*s*14).toFixed(1);return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#FFD54F" stroke-width="1.5" opacity="0"><animate attributeName="opacity" values="0;0.9;0" dur="${(1.4+i*0.1).toFixed(1)}s" begin="${(i*0.18).toFixed(2)}s" repeatCount="indefinite"/></line>`;}).join('')+
+        `<circle r="${(s*3).toFixed(1)}" fill="#FFE082" opacity="0"><animate attributeName="opacity" values="0.3;0.9;0.3" dur="1.8s" repeatCount="indefinite"/></circle>`;
+    case 'acidRain':
+      return [-4,0,4].map((ox,i)=>`<circle cx="${ox}" cy="${(-s*(6+i*4)).toFixed(1)}" r="${(s*1.8).toFixed(1)}" fill="#AED581" opacity="0"><animate attributeName="cy" values="${(s*4).toFixed(1)};${(-s*14).toFixed(1)}" dur="${(1.1+i*0.35).toFixed(2)}s" begin="${(i*0.4).toFixed(1)}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;0.8;0.8;0" dur="${(1.1+i*0.35).toFixed(2)}s" begin="${(i*0.4).toFixed(1)}s" repeatCount="indefinite"/></circle>`).join('')+
+        `<circle r="${(s*9).toFixed(1)}" fill="none" stroke="#C5E1A5" stroke-width="1.2" opacity="0.5" stroke-dasharray="3 4"/>`;
+    default: return '';
+  }
+}
+
+function renderFruit(type, progress, fr){
+  const gp = (GROW_POINTS[type] || [])[fr.gpIdx];
+  if(!gp) return '';
+  const body = oneFruitSVG(type, progress);
+  if(!body) return '';
+  const s = f(fr.scale || 1);
+  const ripe = progress >= 1;
+  const mutFX = (fr.mutations||[]).map(mut=>mutationFX(mut, fr.scale||1, ripe)).join('');
+  // Large invisible hit area so small fruits are easy to click
+  const hitR = Math.max(14, (fr.scale||1) * 14);
+  const hitCircle = `<circle r="${f(hitR)}" fill="transparent" style="cursor:${ripe?'pointer':'default'}"/>`;
+  return `<g class="fruit-g" transform="translate(${gp.x},${gp.y})" data-ready="${ripe?1:0}" data-fpid="${fr._pid||''}" data-fidx="${fr._idx||0}">${hitCircle}${mutFX}<g transform="scale(${s})">${body}</g></g>`;
+}
+
+// ══════════════════════════════════════
+// RENDER ONE PLANT → SVG STRING
+// ══════════════════════════════════════
+function renderPlant(p){
+  const {id,x,y,stage}=p;
+  const def=DEFS[p.type];
+  const mature=stage===3;
+  const plantProg=mature?1:Math.min(1,(Date.now()-p.plantedAt)/def.grow);
+  const body=plantBodySVG(p.type,stage);
+  let fruitsStr='',readyCount=0;
+  if(def.multiHarvest&&mature&&p.fruits){
+    p.fruits.forEach((fr,i)=>{
+      fr._pid=id; fr._idx=i;
+      const pr=fr.ready?1:fr.startedAt===null?0:Math.min(1,(Date.now()-fr.startedAt)/def.fruitGrow);
+      if(fr.ready)readyCount++;
+      if(!fr.ready&&fr.startedAt===null)return;
+      fruitsStr+=renderFruit(p.type,pr,fr);
+    });
+  }
+  const pb=stage<3?`<rect x="-15" y="5" width="30" height="3.5" rx="1.8" fill="rgba(0,0,0,.5)"/><rect x="-15" y="5" width="${f(30*plantProg)}" height="3.5" rx="1.8" fill="#7CB342"/>`:'' ;
+  let fruitPBs='';
+  if(def.multiHarvest&&mature&&p.fruits){
+    p.fruits.forEach(fr=>{
+      if(fr.ready||fr.startedAt===null)return;
+      const gp=(GROW_POINTS[p.type]||[])[fr.gpIdx];
+      if(!gp)return;
+      const pr=Math.min(1,(Date.now()-fr.startedAt)/def.fruitGrow);
+      fruitPBs+=`<rect x="${gp.x-8}" y="${gp.y+10}" width="16" height="2.5" rx="1.2" fill="rgba(0,0,0,.4)"/><rect x="${gp.x-8}" y="${gp.y+10}" width="${f(16*pr)}" height="2.5" rx="1.2" fill="#FFCA28"/>`;
+    });
+  }
+  const harvestReady=mature&&(!def.multiHarvest||readyCount>0);
+  // Single-harvest plant mutation FX (shown on the plant body area)
+  let singleMutFX='';
+  if(!def.multiHarvest&&mature&&p.mutations&&p.mutations.length>0){
+    singleMutFX=p.mutations.map(mut=>mutationFX(mut,p.sizeScale||1,true)).join('');
+  }
+  const hit=`<ellipse cx="0" cy="-24" rx="24" ry="30" fill="transparent" style="cursor:pointer" data-pid="${id}" data-ready="${harvestReady?1:0}"/>`;
+  return `<g data-pid="${id}" transform="translate(${x},${y})" filter="url(#sh)">${body}${fruitsStr}${pb}${fruitPBs}${singleMutFX}${hit}</g>`;
+}
+
+// ══════════════════════════════════════
+// RENDER GARDEN
+// ══════════════════════════════════════
+function renderGarden(){
+  document.getElementById('plants-g').innerHTML=[...plants].sort((a,b)=>a.y-b.y).map(renderPlant).join('');
+}
+
+// ══════════════════════════════════════
+// RENDER SHOP (right panel, always visible)
+// ══════════════════════════════════════
+function renderShop(){
+  const scroll=document.getElementById('shop-scroll');
+  const rarityOrder=['common','uncommon','rare','epic','legendary','mythic'];
+  const sorted=Object.entries(DEFS).sort((a,b)=>rarityOrder.indexOf(a[1].rarity)-rarityOrder.indexOf(b[1].rarity));
+  scroll.innerHTML=sorted.map(([key,d])=>{
+    const stock=STOCK[key];
+    const canAfford=coins>=d.cost;
+    const inStock=stock.current>0;
+    const canBuy=canAfford&&inStock;
+    const isSel=selSeed===key;
+    const rar=RARITIES[d.rarity];
+    const stockClass=stock.current===0?'out':stock.current<=2?'low':'ok';
+    const stockLabel=stock.current===0?'Sold out':`${stock.current} in stock`;
+    const perHarv=d.multiHarvest?`$${d.fruitSell}/fruit · ×${d.fruitSlots}`:`$${d.sell} once`;
+    const typeTag=d.multiHarvest
+      ?`<span class="sc-type multi">perennial</span>`
+      :`<span class="sc-type single">once only</span>`;
+    const rarBadge=`<span style="font-size:8px;padding:2px 5px;border-radius:3px;font-weight:bold;display:inline-block;margin-top:2px;background:rgba(0,0,0,.4);color:${rar.color};border:1px solid ${rar.color}44;">${rar.label}</span>`;
+    let fp='';
+    if(d.multiHarvest&&GROW_POINTS[key]){fp=GROW_POINTS[key].map(gp=>{const body=oneFruitSVG(key,1);return body?`<g transform="translate(${gp.x},${gp.y}) scale(1)">${body}</g>`:''}).join('');}
+    const borderCol=isSel?'#7CB342':rar.color+'55';
+    const glowStyle=isSel?`box-shadow:0 0 10px ${rar.glow}88;`:'';
+    return `<div class="scard${isSel?' sel':''}${!canBuy?' broke':''}" data-seed="${key}" style="cursor:${canBuy?'pointer':'not-allowed'};border-color:${borderCol};${glowStyle}">
+      <svg width="40" height="50" viewBox="-22 -54 44 58" style="overflow:visible;flex-shrink:0">${plantBodySVG(key,3)}${fp}</svg>
+      <div class="sc-info">
+        <div class="sc-name" style="color:${rar.color}">${d.name}</div>
+        <div class="sc-row">
+          <span class="sc-cost">$${d.cost}</span>
+          <span class="sc-sell">${perHarv}</span>
+        </div>
+        <div class="sc-meta">${d.grow/1000}s grow</div>
+        <span class="sc-stock ${stockClass}">${stockLabel}</span><br>
+        ${rarBadge} ${typeTag}
+      </div>
+    </div>`;
+  }).join('');
+  scroll.querySelectorAll('.scard:not(.broke)').forEach(el=>{
+    el.addEventListener('click',()=>{
+      selSeed=el.dataset.seed;
+      planting=true;
+      renderShop();
+      renderUI();
+    });
+  });
+}
+
+// ══════════════════════════════════════
+// RENDER UI
+// ══════════════════════════════════════
+function renderUI(){
+  document.getElementById('coins').textContent=coins;
+  // Planting bar
+  const pbar=document.getElementById('pbar');
+  if(selSeed){
+    pbar.classList.add('show');
+    const d=DEFS[selSeed];
+    const st=STOCK[selSeed];
+    const stockNote=st.current>0?`${st.current} in stock`:'OUT OF STOCK';
+    document.getElementById('pbar-txt').textContent=planting
+      ?`Planting ${d.name} · $${d.cost} · ${stockNote} · click soil`
+      :`${d.name} selected · paused`;
+  } else {
+    pbar.classList.remove('show');
+  }
+  document.getElementById('gsvg').classList.toggle('crosshair',planting&&!!selSeed);
+  // Weather indicator
+  const wInd=document.getElementById('weather-ind');
+  if(activeWeathers.length>0){
+    wInd.innerHTML=activeWeathers.map(aw=>{
+      const wd=WEATHER_TYPES[aw.type];
+      const rem=Math.max(0,aw.endAt-Date.now());
+      const wm=Math.floor(rem/60000),ws=Math.floor((rem%60000)/1000);
+      return `<span class="w-badge" style="background:${wd.overlay}22;border-color:${wd.color}55;color:${wd.color};margin-left:3px">${wd.icon} ${wm}:${ws.toString().padStart(2,'0')}</span>`;
+    }).join('');
+  } else {
+    const rem=Math.max(0,nextWeatherCheckAt-Date.now());
+    const wm=Math.floor(rem/60000),ws=Math.floor((rem%60000)/1000);
+    wInd.innerHTML=`<span class="w-next">☁ ${wm}:${ws.toString().padStart(2,'0')}</span>`;
+  }
+  // Footer
+  let readyCount=0,readyVal=0;
+  plants.forEach(p=>{
+    const def=DEFS[p.type];
+    if(def.multiHarvest&&p.fruits){
+      const rdy=p.fruits.filter(f=>f.ready);
+      readyCount+=rdy.length;
+      rdy.forEach(fr=>{ readyVal+=calcFruitPrice(p.type,fr); });
+    } else if(!def.multiHarvest&&p.stage===3){
+      readyCount++; readyVal+=calcPlantPrice(p);
+    }
+  });
+  document.getElementById('ft-tot').textContent=plants.length;
+  document.getElementById('ft-rdy').textContent=readyCount;
+  document.getElementById('ft-val').textContent=readyVal;
+  document.getElementById('sell-all').classList.toggle('show',readyCount>0);
+}
+
+// ══════════════════════════════════════
+// TOOLTIP
+// ══════════════════════════════════════
+function showTT(id){
+  hideFruitTT();
+  document.getElementById('tt-sh-harv')?.remove(); // always clear before rebuilding
+  ttId=id;
+  const p=plants.find(x=>x.id===id);
+  if(!p){hideTT();return;}
+  const def=DEFS[p.type];
+  const stageName=['Seed','Sprout','Growing','Mature'][p.stage];
+  const pct=p.stage>=3?100:Math.min(100,Math.round((Date.now()-p.plantedAt)/def.grow*100));
+  let previewSVG=plantBodySVG(p.type,p.stage);
+  if(def.multiHarvest&&p.stage===3&&p.fruits){
+    p.fruits.forEach(fr=>{
+      const pr=fr.ready?1:fr.startedAt===null?0:Math.min(1,(Date.now()-fr.startedAt)/def.fruitGrow);
+      if(!fr.ready&&fr.startedAt===null)return;
+      previewSVG+=renderFruit(p.type,pr,fr);
+    });
+  }
+  document.getElementById('tt-svg').innerHTML=previewSVG;
+  document.getElementById('tt-name').textContent=def.name;
+  document.getElementById('tt-stage').textContent=p.stage<3?`${stageName} (${pct}%)`:'Mature';
+  if(def.multiHarvest){
+    if(p.stage<3){
+      document.getElementById('tt-detail').textContent='Growing plant…';
+      document.getElementById('tt-val').textContent='';
+    } else {
+      const rdyF=p.fruits?p.fruits.filter(fr=>fr.ready):[];
+      const growing=p.fruits?p.fruits.filter(fr=>fr.startedAt!==null&&!fr.ready).length:0;
+      const queued=p.fruits?p.fruits.filter(fr=>fr.startedAt===null&&!fr.ready).length:0;
+      document.getElementById('tt-detail').textContent=`${rdyF.length} ready · ${growing} growing · ${queued} queued`;
+      document.getElementById('tt-val').textContent=rdyF.length>0?'Hover & click a glowing fruit to harvest':'';
+    }
+  } else {
+    const mut=p.mutations?.length>0?' · '+p.mutations.map(m=>WEATHER_TYPES[m]?.icon).join(''):'';
+    const sz=p.sizeScale?` · ${f(p.sizeScale)}×`:'';
+    document.getElementById('tt-detail').textContent=`Once only · removed after harvest${mut}${sz}`;
+    const price=p.stage===3?calcPlantPrice(p):0;
+    document.getElementById('tt-val').textContent=p.stage===3?`Value: $${price}`:'';
+    if(!def.multiHarvest && p.stage===3){
+      document.getElementById('tt-rem-btn').insertAdjacentHTML('beforebegin',
+        `<button class="tbt do-harv" id="tt-sh-harv" onclick="doHarvest(${p.id})">Harvest ($${price})</button>`);
+    }
+  }
+  document.getElementById('tt').classList.add('show');
+}
+function hideTT(){ttId=null;document.getElementById('tt').classList.remove('show');document.getElementById('tt-sh-harv')?.remove();}
+
+// ── Fruit-specific tooltip ──────────────────────────────────────────────────
+let fruitTTState=null; // {pid, fidx}
+function showFruitTT(pid, fidx){
+  hideTT();
+  const p=plants.find(x=>x.id===pid);
+  if(!p||!p.fruits) return;
+  const fr=p.fruits[fidx];
+  if(!fr||!fr.ready) return;
+  fruitTTState={pid,fidx};
+  const def=DEFS[p.type];
+  // Preview: just this one fruit at its scale
+  const fakeFr={...fr,gpIdx:0,scale:fr.scale};
+  document.getElementById('ftt-svg').innerHTML=`<g transform="scale(${f(fr.scale||1)})">${oneFruitSVG(p.type,1)}</g>`;
+  document.getElementById('ftt-name').textContent=`${def.name} (fruit ${fidx+1})`;
+  document.getElementById('ftt-size').textContent=`Size: ${f(fr.scale||1)}× · Base $${def.fruitSell}`;
+  const muts=fr.mutations||[];
+  document.getElementById('ftt-muts').textContent=muts.length>0
+    ?muts.map(m=>`${WEATHER_TYPES[m]?.icon} ${WEATHER_TYPES[m]?.label} (+${Math.round((WEATHER_TYPES[m].sellMult-1)*100)}%)`).join(', ')
+    :'No mutations';
+  const price=calcFruitPrice(p.type,fr);
+  document.getElementById('ftt-val').textContent=`Sell value: $${price}`;
+  const hb=document.getElementById('ftt-harv-btn');
+  hb.style.display='block';
+  hb.textContent=`Harvest ($${price})`;
+  document.getElementById('fruit-tt').classList.add('show');
+}
+function hideFruitTT(){
+  fruitTTState=null;
+  document.getElementById('fruit-tt').classList.remove('show');
+}
+
+// ══════════════════════════════════════
+// GAME ACTIONS
+// ══════════════════════════════════════
+function doPlant(x,y){
+  if(!selSeed||!planting)return;
+  const st=STOCK[selSeed];
+  const def=DEFS[selSeed];
+  if(coins<def.cost||st.current<=0)return;
+  if(x<30||x>890||y<355||y>483)return;
+  coins-=def.cost;
+  st.current--;
+  plants.push({id:nid++,type:selSeed,x,y,stage:0,plantedAt:Date.now(),fruits:null,sizeScale:0.88+Math.random()*0.24,mutations:[]});
+  renderShop(); renderUI(); renderGarden();
+}
+
+// Harvest a specific fruit by index (multi-harvest plants)
+function doHarvestFruit(pid, fidx){
+  const p=plants.find(x=>x.id===pid);
+  if(!p||!p.fruits) return;
+  const fr=p.fruits[fidx];
+  if(!fr||!fr.ready) return;
+  coins+=calcFruitPrice(p.type,fr);
+  fr.ready=false;fr.startedAt=null;fr.gpIdx=0;fr.scale=1;fr.mutations=[];
+  const growing=p.fruits.some(f=>f.startedAt!==null&&!f.ready);
+  if(!growing)startFruitGrowing(fr,p.type);
+  hideFruitTT();
+  renderShop(); renderUI(); renderGarden();
+}
+
+// Harvest single-harvest plant (used by sell-all and internal)
+function doHarvest(id){
+  const p=plants.find(x=>x.id===id);
+  if(!p) return;
+  const def=DEFS[p.type];
+  if(def.multiHarvest) return; // multi-harvest uses doHarvestFruit
+  if(p.stage!==3) return;
+  coins+=calcPlantPrice(p);
+  plants=plants.filter(x=>x.id!==id);
+  hideTT();
+  renderShop(); renderUI(); renderGarden();
+}
+
+function doRemove(id){
+  plants=plants.filter(p=>p.id!==id);
+  hideTT(); renderShop(); renderUI(); renderGarden();
+}
+
+function doSellAll(){
+  let earned=0;
+  plants.forEach(p=>{
+    const def=DEFS[p.type];
+    if(def.multiHarvest&&p.fruits){
+      const rdy=p.fruits.filter(f=>f.ready);
+      rdy.forEach(fr=>{
+        earned+=calcFruitPrice(p.type,fr);
+        fr.ready=false;fr.startedAt=null;fr.gpIdx=0;fr.scale=1;fr.mutations=[];
+        const growing=p.fruits.some(f=>f.startedAt!==null&&!f.ready);
+        if(!growing)startFruitGrowing(fr,p.type);
+      });
+    } else if(!def.multiHarvest&&p.stage===3){
+      earned+=calcPlantPrice(p);
+    }
+  });
+  plants=plants.filter(p=>DEFS[p.type].multiHarvest||p.stage!==3);
+  coins+=earned;
+  if(ttId!==null&&!plants.find(p=>p.id===ttId))hideTT();
+  renderShop(); renderUI(); renderGarden();
+}
+
+// ══════════════════════════════════════
+// MAIN TICK
+// ══════════════════════════════════════
+setInterval(()=>{
+  // ── Plant growth
+  let changed=false;
+  plants.forEach(p=>{
+    const def=DEFS[p.type];
+    if(p.stage<3){
+      const ns=Math.min(3,Math.floor((Date.now()-p.plantedAt)/(def.grow/3)));
+      if(ns>p.stage){
+        p.stage=ns; changed=true;
+        if(ns===3&&def.multiHarvest){
+          p.fruits=Array.from({length:def.fruitSlots},(_,i)=>{const fr={ready:false,startedAt:null,gpIdx:0,scale:1,mutations:[]};if(i===0)startFruitGrowing(fr,p.type);return fr;});
+        }
+      }
+    }
+    if(p.stage===3&&def.multiHarvest&&p.fruits){
+      p.fruits.forEach(fr=>{
+        if(!fr.ready&&fr.startedAt!==null&&Date.now()-fr.startedAt>=def.fruitGrow){fr.ready=true;changed=true;const next=p.fruits.find(f=>f.startedAt===null);if(next)startFruitGrowing(next,p.type);}
+      });
+    }
+  });
+
+  // ── Weather expiry
+  const prevWLen=activeWeathers.length;
+  activeWeathers=activeWeathers.filter(aw=>Date.now()<aw.endAt);
+  if(activeWeathers.length!==prevWLen){renderWeatherOverlay();renderUI();}
+
+  // ── New weather check
+  if(Date.now()>=nextWeatherCheckAt){
+    nextWeatherCheckAt=Date.now()+WEATHER_CHECK_MS;
+    if(Math.random()<0.65) spawnWeather();
+    else renderUI();
+  }
+
+  // ── Gradual per-tick mutation drip (independent per active weather)
+  if(activeWeathers.length>0){
+    activeWeathers.forEach(aw=>{
+      const wd=WEATHER_TYPES[aw.type];
+      const tickChance=wd.mutChance/60;
+      plants.forEach(p=>{
+        const def=DEFS[p.type];
+        if(def.multiHarvest&&p.fruits){
+          p.fruits.forEach(fr=>{
+            if(fr.startedAt===null)return;
+            if(!fr.mutations.includes(aw.type)&&Math.random()<tickChance){
+              fr.mutations.push(aw.type);
+              fr.scale=Math.min(2.2,Math.max(0.4,(fr.scale||1)*wd.scaleMult));
+              changed=true;
+            }
+          });
+        } else if(!def.multiHarvest&&p.stage>0){
+          if(!p.mutations.includes(aw.type)&&Math.random()<tickChance){
+            p.mutations.push(aw.type);
+            p.sizeScale=Math.min(2.0,Math.max(0.5,(p.sizeScale||1)*wd.scaleMult));
+            changed=true;
+          }
+        }
+      });
+    });
+  }
+
+  // ── Restock check
+  if(Date.now()>=nextRestockAt){doRestock();}
+
+  // ── Restock countdown UI
+  const remaining=Math.max(0,nextRestockAt-Date.now());
+  const rm=Math.floor(remaining/60000);
+  const rs=Math.floor((remaining%60000)/1000);
+  const clockTime=new Date(nextRestockAt);
+  const hh=clockTime.getHours().toString().padStart(2,'0');
+  const mm=clockTime.getMinutes().toString().padStart(2,'0');
+  const ss=clockTime.getSeconds().toString().padStart(2,'0');
+  document.getElementById('restock-timer').textContent=`${hh}:${mm}:${ss} (${rm}:${rs.toString().padStart(2,'0')})`;
+  const prog=(RESTOCK_MS-remaining)/RESTOCK_MS;
+  document.getElementById('restock-bar-fill').style.width=`${Math.min(100,prog*100)}%`;
+
+  renderGarden();
+  if(changed){renderUI();renderShop();}
+  if(ttId!==null)showTT(ttId);
+},800);
+
+// ══════════════════════════════════════
+// EVENTS
+// ══════════════════════════════════════
+document.getElementById('gsvg').addEventListener('click',e=>{
+  if(e.target.closest('[data-pid]'))return;
+  if(selSeed&&planting){
+    const svg=document.getElementById('gsvg');
+    const pt=svg.createSVGPoint();
+    pt.x=e.clientX; pt.y=e.clientY;
+    const svgP=pt.matrixTransform(svg.getScreenCTM().inverse());
+    doPlant(svgP.x,svgP.y);
+  } else {
+    hideTT();
+  }
+});
+
+document.getElementById('plants-g').addEventListener('click',e=>{
+  // Fruit click — show individual fruit tooltip
+  const fg=e.target.closest('.fruit-g');
+  if(fg&&fg.dataset.ready==='1'){
+    e.stopPropagation();
+    showFruitTT(parseInt(fg.dataset.fpid), parseInt(fg.dataset.fidx));
+    return;
+  }
+  // Plant hit area click — show plant tooltip
+  const el=e.target.closest('[data-pid]');
+  if(!el)return;
+  e.stopPropagation();
+  hideFruitTT();
+  showTT(parseInt(el.dataset.pid));
+});
+
+// Hover outline — only on ripe fruits (not whole plants)
+document.getElementById('plants-g').addEventListener('mouseover',e=>{
+  const fg=e.target.closest('.fruit-g');
+  if(!fg||fg.dataset.ready!=='1') return;
+  if(!fg.querySelector('.hover-ring')){
+    const ring=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    ring.setAttribute('r','14');
+    ring.setAttribute('fill','none');
+    ring.setAttribute('stroke','#FFFFFF');
+    ring.setAttribute('stroke-width','2.2');
+    ring.setAttribute('opacity','0.9');
+    ring.setAttribute('class','hover-ring');
+    ring.style.pointerEvents='none';
+    fg.insertBefore(ring,fg.firstChild);
+  }
+});
+document.getElementById('plants-g').addEventListener('mouseout',e=>{
+  const fg=e.target.closest('.fruit-g');
+  if(fg&&!fg.contains(e.relatedTarget)){
+    fg.querySelector('.hover-ring')?.remove();
+  }
+});
+
+document.getElementById('stop-btn')    .addEventListener('click',()=>{planting=false;renderUI();});
+document.getElementById('desel-btn')   .addEventListener('click',()=>{selSeed=null;planting=false;renderUI();renderShop();});
+document.getElementById('ftt-harv-btn').addEventListener('click',()=>{if(fruitTTState)doHarvestFruit(fruitTTState.pid,fruitTTState.fidx);});
+document.getElementById('ftt-cls-btn') .addEventListener('click',hideFruitTT);
+document.getElementById('tt-rem-btn')  .addEventListener('click',()=>{if(ttId!==null)doRemove(ttId);});
+document.getElementById('tt-cls-btn')  .addEventListener('click',hideTT);
+document.getElementById('sell-all')    .addEventListener('click',doSellAll);
+
+// ══════════════════════════════════════
+// WEBSOCKET — connects to this same server
+// ══════════════════════════════════════
+let ws = null;
+let wsConnected = false;
+
+function initWS(){
+  // Only connect when actually served from a server (not opened as a local file)
+  if(!location.host){
+    console.log('[Garden] Running locally — server features disabled.');
+    return;
+  }
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const url   = `${proto}//${location.host}`;
+  ws = new WebSocket(url);
+
+  ws.addEventListener('open', () => {
+    wsConnected = true;
+    console.log('[Garden] Server connected ✓');
+  });
+
+  ws.addEventListener('message', (e) => {
+    let data;
+    try { data = JSON.parse(e.data); } catch { return; }
+
+    switch(data.type){
+      case 'weather_start': {
+        const wd = WEATHER_TYPES[data.weatherType];
+        if(!wd) return;
+        activeWeathers = activeWeathers.filter(aw => aw.type !== data.weatherType);
+        activeWeathers.push({type: data.weatherType, endAt: data.endAt});
+        renderWeatherOverlay(); renderGarden(); renderUI();
+        showNotif(`${wd.icon} ${wd.label} rolls in worldwide!`, wd.color);
+        break;
+      }
+      case 'weather_sync': {
+        activeWeathers = (data.weathers || []).filter(aw => Date.now() < aw.endAt);
+        renderWeatherOverlay(); renderGarden(); renderUI();
+        break;
+      }
+      case 'weather_clear': {
+        activeWeathers = [];
+        renderWeatherOverlay(); renderUI();
+        showNotif('☀ Weather cleared worldwide', '#90A4AE');
+        break;
+      }
+      case 'announce': {
+        showNotif(`📢 ${data.msg}`, data.color || '#FF8F00');
+        break;
+      }
+      case 'restock': {
+        if(!data.key || !STOCK[data.key]) return;
+        STOCK[data.key].current = STOCK[data.key].max;
+        renderShop();
+        showNotif(`📦 ${DEFS[data.key].name} restocked worldwide!`, RARITIES[DEFS[data.key].rarity].color);
+        break;
+      }
+      case 'coins': {
+        coins += data.amount || 0;
+        renderUI();
+        showNotif(`💰 Everyone got $${data.amount}!`, '#FFD54F');
+        break;
+      }
+    }
+  });
+
+  ws.addEventListener('close', () => {
+    wsConnected = false;
+    console.log('[Garden] Server disconnected — retrying in 5s…');
+    setTimeout(initWS, 5000);
+  });
+
+  ws.addEventListener('error', () => ws.close());
+}
+
+function wsSend(data){
+  if(ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data));
+}
+
+// ══════════════════════════════════════
+// NOTIFICATIONS
+// ══════════════════════════════════════
+function showNotif(msg, color='#FFD54F'){
+  const bar=document.getElementById('notif-bar');
+  if(!bar)return;
+  const el=document.createElement('div');
+  el.className='notif';
+  el.textContent=msg;
+  el.style.color=color;
+  el.style.borderColor=color+'55';
+  bar.appendChild(el);
+  setTimeout(()=>el.remove(), 4100);
+}
+
+// ══════════════════════════════════════
+// ADMIN PANEL
+// ══════════════════════════════════════
+function openAdminPanel(){
+  const wb=document.getElementById('adm-weather-btns');
+  wb.innerHTML=Object.entries(WEATHER_TYPES).map(([key,wd])=>
+    `<button class="adm-btn" style="border-color:${wd.color}44;color:${wd.color}" onclick="adminWeather('${key}')">${wd.icon} ${wd.label}</button>`
+  ).join('');
+  const sb=document.getElementById('adm-stock-btns');
+  sb.innerHTML=Object.entries(STOCK).map(([key])=>{
+    const rar=RARITIES[DEFS[key].rarity];
+    return `<button class="adm-btn" style="border-color:${rar.color}44;color:${rar.color}" onclick="adminRestock('${key}')">${DEFS[key].name}</button>`;
+  }).join('');
+  const panel=document.getElementById('adm-panel');
+  panel.style.display=panel.style.display==='flex'?'none':'flex';
+}
+
+function adminWeather(type){
+  const wd=WEATHER_TYPES[type];
+  if(wsConnected){
+    wsSend({type:'admin_weather', weatherType:type, dur:wd.dur});
+  } else {
+    // Offline fallback
+    activeWeathers=activeWeathers.filter(aw=>aw.type!==type);
+    activeWeathers.push({type, endAt:Date.now()+wd.dur});
+    renderWeatherOverlay(); renderGarden(); renderUI();
+    showNotif(`${wd.icon} ${wd.label} activated (offline)`, wd.color);
+  }
+}
+
+function adminRestock(key){
+  if(wsConnected){
+    wsSend({type:'admin_restock', key});
+  } else {
+    STOCK[key].current=STOCK[key].max;
+    renderShop();
+    showNotif(`📦 ${DEFS[key].name} restocked`, RARITIES[DEFS[key].rarity].color);
+  }
+}
+
+function adminAnnounce(){
+  const input=document.getElementById('adm-msg');
+  const msg=input.value.trim();
+  if(!msg)return;
+  if(wsConnected){
+    wsSend({type:'admin_announce', msg, color:'#FF8F00'});
+  } else {
+    showNotif(`📢 ${msg}`, '#FF8F00');
+  }
+  input.value='';
+}
+
+// Coin logo → file picker
+document.getElementById('coin-logo').addEventListener('click',()=>{
+  document.getElementById('cheat-file').click();
+});
+
+document.getElementById('cheat-file').addEventListener('change',e=>{
+  const file=e.target.files[0];
+  if(file){
+    const name=file.name.replace(/\.[^.]*$/,'');
+    if(name==='gamecheat') openAdminPanel();
+  }
+  e.target.value='';
+});
+
+document.getElementById('adm-msg')?.addEventListener('keydown',e=>{
+  if(e.key==='Enter') adminAnnounce();
+});
+
+initWS();
+renderShop();
+renderUI();
+renderGarden();
+</script>
+</body>
+</html>
